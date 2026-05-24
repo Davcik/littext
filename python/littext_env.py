@@ -1,0 +1,89 @@
+"""littext_env: verify that required Python packages are installed.
+
+This module is intentionally light. The default check uses importlib.util.find_spec,
+which verifies that a package is INSTALLED without actually importing it. Cold
+imports of sentence_transformers / torch can take 30-90 seconds on Windows; we
+must not pay that cost just to answer the question "is the package available?".
+
+The verbose report DOES import each package (to read its __version__), and this
+is acceptable because the user has asked for verbose output explicitly.
+"""
+
+from __future__ import annotations
+
+import importlib
+import importlib.util
+import sys
+from typing import Tuple
+
+# Map: package import name -> (display name, install hint, required for v0.1)
+REQUIRED = [
+    ("spacy",                "spaCy",                "pip install spacy",                True),
+    ("sentence_transformers","sentence-transformers","pip install sentence-transformers", True),
+    ("hdbscan",              "hdbscan",              "pip install hdbscan",              True),
+    ("sklearn",              "scikit-learn",         "pip install scikit-learn",         True),
+    ("umap",                 "umap-learn",           "pip install umap-learn",           True),
+    ("matplotlib",           "matplotlib",           "pip install matplotlib",           True),
+    ("networkx",             "networkx",             "pip install networkx",             True),
+    ("pandas",               "pandas",               "pip install pandas",               True),
+    ("numpy",                "numpy",                "pip install numpy",                True),
+]
+
+
+def _is_installed(modname: str) -> bool:
+    """Cheap presence check. Does NOT import the module."""
+    try:
+        spec = importlib.util.find_spec(modname)
+        return spec is not None
+    except (ImportError, ValueError):
+        return False
+
+
+def _import_for_version(modname: str) -> Tuple[bool, str]:
+    """Full import to read the version string. Use ONLY in verbose mode."""
+    try:
+        mod = importlib.import_module(modname)
+        ver = getattr(mod, "__version__", "?")
+        return True, ver
+    except Exception as exc:
+        return False, str(exc).splitlines()[0][:120]
+
+
+def _spacy_model_present(model_name: str = "en_core_web_sm") -> bool:
+    """Check whether a spaCy model is installed, WITHOUT loading it."""
+    return _is_installed(model_name)
+
+
+def report_environment(verbose: bool = False) -> None:
+    """Print a report of the Python environment. Verbose=True imports every
+    package to read its version (slow). Verbose=False uses cheap presence checks."""
+    print(f"  Python:        {sys.version.split()[0]}", flush=True)
+    print(f"  Executable:    {sys.executable}", flush=True)
+    if verbose:
+        print(f"  sys.path[0:3]: {sys.path[:3]}", flush=True)
+    for modname, display, hint, _required in REQUIRED:
+        if verbose:
+            ok, info = _import_for_version(modname)
+            mark = "OK " if ok else "-- "
+            if ok:
+                print(f"  [{mark}] {display:24s} {info}", flush=True)
+            else:
+                print(f"  [{mark}] {display:24s} (missing; {hint})", flush=True)
+        else:
+            ok = _is_installed(modname)
+            mark = "OK " if ok else "-- "
+            print(f"  [{mark}] {display:24s} {'installed' if ok else '(missing; ' + hint + ')'}", flush=True)
+    if _spacy_model_present():
+        print(f"  [OK ] en_core_web_sm model is installed", flush=True)
+    else:
+        print(f"  [-- ] en_core_web_sm model missing; run  python -m spacy download en_core_web_sm", flush=True)
+
+
+def check_environment() -> bool:
+    """Return True iff all required packages are present (cheap, non-importing)."""
+    for modname, _display, _hint, required in REQUIRED:
+        if required and not _is_installed(modname):
+            return False
+    if not _spacy_model_present():
+        return False
+    return True
