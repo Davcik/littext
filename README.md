@@ -26,7 +26,7 @@ automated extraction from raw academic text, without manual coding.
     python set exec "C:\path\to\python.exe"
     python query
 
-Python 3.13 or 3.14 is recommended on Windows. On Python 3.14, ensure your
+Python 3.14 is recommended on Windows. On Python 3.14, ensure your
 spaCy install resolves a `blis` wheel (blis 1.3.3 or later provides cp314
 wheels on PyPI).
 
