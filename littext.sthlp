@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.0  17may2026}{...}
+{* *! version 0.2.9  25may2026}{...}
 {title:Title}
 
 {phang}
@@ -239,10 +239,6 @@ tool whose output requires manual curation before being treated as a coding
 scheme. Quantitative precision/recall figures should not be reported against
 the bundled synthetic corpus.
 
-{title:Author}
-
-{pstd}
-(Your name and affiliation)
 
 {title:References}
 
