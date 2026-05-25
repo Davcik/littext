@@ -4,7 +4,7 @@
 
 {phang}
 {bf:littext} {hline 2} Automated construct discovery and relationship
-inference from academic text
+inference from an academic text
 
 {pstd}
 The short alias {bf:litt} is provided for interactive use; the two commands
@@ -33,12 +33,12 @@ corpus of academic text (titles, abstracts, full texts). It is intended for
 the exploratory researcher who has assembled a large corpus and wants to
 generate candidate relationships of the form "X is associated with Y",
 "X moderates the effect of Z on Y", etc., that can then be hand-curated into
-a formal systematic-literature-review coding scheme.
+a formal systematic literature review coding scheme.
 
 {pstd}
 The pipeline is: spaCy noun-chunk extraction; sentence-transformer embedding
 of candidate constructs; HDBSCAN clustering into synonym groups; co-occurrence-
-based relation candidacy with normalised PMI scoring; dependency-pattern
+based relation candidacy with normalized PMI scoring; dependency-pattern
 matching for relationship valence.
 
 {pstd}
@@ -81,7 +81,7 @@ preferred alternative is {bf:allenai/specter2}.
 
 {phang}
 {opt minf:req(#)} - minimum document frequency for a candidate construct to
-be retained. v0.2.6 default: {bf:1} for corpora with fewer than 50
+be retained. Default: {bf:1} for corpora with fewer than 50
 documents (single-document constructs are kept so the relation matcher
 can exercise them); {bf:2} for corpora of 50 or more documents (acts as
 a noise filter). Override by passing the option explicitly; the resolved
@@ -128,7 +128,7 @@ Relationship valence is always computed and stored in {bf:relation_type}.
 Default {bf:20}. For heatmaps, controls the matrix dimensions.
 
 {phang}
-{opt we:ighted} - for {bf:type(network)} only: colour edges continuously by
+{opt we:ighted} - for {bf:type(network)} only: color edges continuously by
 confidence (viridis) rather than discretely by relation type. Useful when
 edge strength matters more than syntactic type.
 
@@ -136,7 +136,7 @@ edge strength matters more than syntactic type.
 {opt out:dir(string)} - directory where figure files will be written.
 Accepts an absolute path (e.g. {bf:"D:\projects\figures"}). If omitted or
 given as a relative path, the current Stata working directory ({bf:c(pwd)})
-is used; the resolved absolute path is always printed so the user knows
+is used. The resolved absolute path is always printed, so the user knows
 where the files were saved.
 
 {phang}
@@ -222,8 +222,8 @@ Users should not treat {bf:text_polarity} as a measure of relationship sign.
 {title:Requirements}
 
 {pstd}
-Stata 19 or higher with Python integration configured. Python 3.13 or 3.14
-recommended on Windows; spaCy on Python 3.14 requires {bf:blis 1.3.3} or
+Stata 19 or higher with Python integration configured. Python 3.14
+recommended on Windows; spaCy on Python requires {bf:blis 1.3.3} or
 higher. Required Python packages: spacy, sentence-transformers, hdbscan,
 scikit-learn, umap-learn, matplotlib, networkx, pandas, numpy. The spaCy
 model {bf:en_core_web_sm} must be downloaded once via
@@ -274,3 +274,53 @@ Approximation and Projection. {it:arXiv:1802.03426}.
 {pstd}
 Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using
 Siamese BERT-networks. {it:EMNLP-IJCNLP}, 3982-3992.
+
+
+{title:Aliases}
+
+{pstd}
+{cmd:litt} is provided as a short-form alias for {cmd:littext}. It
+forwards every argument and propagates returned scalars and macros.
+
+
+{title:Author}
+
+{pstd}
+Nebojsa S. Davcik{break}
+EM Normandie Business School, Oxford, UK{break}
+ORCID: 0000-0003-1041-8788{break}
+{browse "https://orcid.org/0000-0003-1041-8788":https://orcid.org/0000-0003-1041-8788}{break}
+Email: {browse "mailto:davcik@live.com":davcik@live.com}
+
+
+{title:Citation}
+
+{pstd}
+When citing {cmd:littext} in academic work, please use:
+
+{phang2}
+Davcik, N. S. 2026. {it:LITTEXT: Stata module for automated construct and relationship discovery from research text.}
+Available at: {browse "https://github.com/Davcik/littext":https://github.com/Davcik/littext}
+
+
+{title: License}
+
+{pstd}
+{cmd:littext} is free software released under the
+{browse "https://www.gnu.org/licenses/gpl-3.0.html":GNU General Public License version 3 or later} (GPL-3.0-or-later).
+You may redistribute and modify it under the terms of that license;
+modified versions and larger works that incorporate {cmd:littext}
+must also be released under GPL-3 or later. See the LICENCE file in
+the repository root for the full license text.
+
+{pstd}
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+
+{title:Also see}
+
+{phang}Short-form alias: {helpb litt}{p_end}
+
+

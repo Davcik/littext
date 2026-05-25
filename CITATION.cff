@@ -2,7 +2,7 @@
 # Citation File Format v1.2.0
 # https://citation-file-format.github.io/
 cff-version: 1.2.0
-title: "littext: automated construct and relationship discovery from research text in Stata"
+title: "LITTEXT: Stata module for automated construct and relationship discovery from research text"
 message: "If you use this software, please cite it as below."
 type: software
 version: "0.2.9"
@@ -17,6 +17,8 @@ keywords:
   - relation extraction
   - systematic literature review
   - marketing research
+  - business research
+  - social sciences
   - bibliometrics
   - natural language processing
 authors:

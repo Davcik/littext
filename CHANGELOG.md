@@ -80,7 +80,7 @@ by adding more patterns whose span lookups would also fail. The trace
 that pinpointed the canonical-vs-surface mismatch was perhaps thirty
 minutes of work that prevented an indefinite cycle of speculative fixes.
 
-## [0.2.8] – 2026-05-24
+## [0.2.8] – 2026-05-20
 
 ### Background
 
@@ -154,7 +154,7 @@ being "(cbbe" for "(consumer-based brand equity)").
   writing boilerplate and geographies, with statistical methods explicitly
   kept on the constructs side at user request.
 
-## [0.2.7] – 2026-05-24
+## [0.2.7] – 2026-05-18
 
 ### Added
 - New graph type `extraction`: Stata-native horizontal bar of relations
@@ -202,7 +202,7 @@ being "(cbbe" for "(consumer-based brand equity)").
   package's six-element controlled vocabulary in a way that generic
   text-mining tools cannot.
 
-## [0.2.6] – 2026-05-23
+## [0.2.6] – 2026-05-10
 
 ### Background
 
@@ -249,7 +249,7 @@ each. They are pruned before the relation matcher sees them.
 - Directional row count should rise from 12 (v0.2.5) toward 20-30 as
   the v0.2.5 patterns get to fire on the previously-pruned constructs.
 
-## [0.2.5] – 2026-05-23
+## [0.2.5] – 2026-05-07
 
 ### Background
 
@@ -308,7 +308,7 @@ case where the parser made the alternative attachment.
   NLP pattern-matching against statistical parsers must accommodate the
   parser's actual output distribution, not the linguist's expected output.
 
-## [0.2.4] – 2026-05-23
+## [0.2.4] – 2026-04-23
 
 ### Background
 
@@ -352,7 +352,7 @@ pobj. On hyphenated constructs this was almost always the wrong fragment.
   validated against real parser output, not against the linguist's mental
   model of the grammar.
 
-## [0.2.3] – 2026-05-23
+## [0.2.3] – 2026-04-20
 
 ### Background
 
@@ -405,7 +405,7 @@ copular sentences with predicate-noun anchors. v0.2.3 addresses all three.
   language plus residual misses in cross-clause constructions, the latter
   being v0.3 work.
 
-## [0.2.2] – 2026-05-23
+## [0.2.2] – 2026-04-18
 
 ### Fixed
 - Second performance regression in `score_relations`. Trace logs from
@@ -437,7 +437,7 @@ copular sentences with predicate-noun anchors. v0.2.3 addresses all three.
   roughly 1-5 seconds rather than the >15 minutes observed under v0.2.0
   and v0.2.1.
 
-## [0.2.1] – 2026-05-23
+## [0.2.1] – 2026-04-03
 
 ### Fixed
 - Performance regression in `score_relations` introduced by v0.2.0. The
@@ -456,7 +456,7 @@ copular sentences with predicate-noun anchors. v0.2.3 addresses all three.
   `construct_id`. Together with the doc cache, expected runtime on the
   33-abstract corpus is back to roughly 12-20 seconds.
 
-## [0.2.0] – 2026-05-22
+## [0.2.0] – 2026-04-02
 
 ### Added
 - Five-pattern dependency-arc relation matcher in `littext_relate.py`,
@@ -498,7 +498,7 @@ copular sentences with predicate-noun anchors. v0.2.3 addresses all three.
   ~85% to 50-60%, and source/target direction should be correct on roughly
   80% of directional rows rather than ~50%.
 
-## [0.1.3] – 2026-05-22
+## [0.1.3] – 2026-03-22
 
 ### Added
 - POS-aware trigger matching in the dependency-pattern matcher
@@ -526,7 +526,7 @@ copular sentences with predicate-noun anchors. v0.2.3 addresses all three.
 - The relations frame no longer reports `moderates` rows triggered by
   adjectival "moderating" inside noun-phrases like "the moderating effect".
 
-## [0.1.2] – 2026-05-22
+## [0.1.2] – 2026-03-20
 
 ### Changed
 - Stop-list extended with methodological-discourse vocabulary that v0.1.1 had
@@ -541,7 +541,7 @@ copular sentences with predicate-noun anchors. v0.2.3 addresses all three.
   phrases as endpoints (e.g. spurious "antecedents → mediating role" rows
   that v0.1.1 was producing at confidence > 0.95).
 
-## [0.1.1] – 2026-05-21
+## [0.1.1] – 2026-03-11
 
 ### Added
 - Pre-extraction text cleanup: Emerald-style structured-abstract section
@@ -571,7 +571,7 @@ copular sentences with predicate-noun anchors. v0.2.3 addresses all three.
 - UMAP `UserWarning: n_jobs value 1 overridden to 1 by setting random_state`
   is suppressed at the call site (it was harmless but cluttered output).
 
-## [0.1.0] – 2026-05-18
+## [0.1.0] – 2026-02-18
 
 ### Added
 - Initial release.
@@ -598,17 +598,4 @@ copular sentences with predicate-noun anchors. v0.2.3 addresses all three.
 - End-to-end smoke test do-file under `tests/`.
 
 [Unreleased]: https://github.com/Davcik/littext/compare/v0.2.9...HEAD
-[0.2.9]: https://github.com/Davcik/littext/compare/v0.2.8...v0.2.9
-[0.2.8]: https://github.com/Davcik/littext/compare/v0.2.7...v0.2.8
-[0.2.7]: https://github.com/Davcik/littext/compare/v0.2.6...v0.2.7
-[0.2.6]: https://github.com/Davcik/littext/compare/v0.2.5...v0.2.6
-[0.2.5]: https://github.com/Davcik/littext/compare/v0.2.4...v0.2.5
-[0.2.4]: https://github.com/Davcik/littext/compare/v0.2.3...v0.2.4
-[0.2.3]: https://github.com/Davcik/littext/compare/v0.2.2...v0.2.3
-[0.2.2]: https://github.com/Davcik/littext/compare/v0.2.1...v0.2.2
-[0.2.1]: https://github.com/Davcik/littext/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/Davcik/littext/compare/v0.1.3...v0.2.0
-[0.1.3]: https://github.com/Davcik/littext/compare/v0.1.2...v0.1.3
-[0.1.2]: https://github.com/Davcik/littext/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/Davcik/littext/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/Davcik/littext/releases/tag/v0.1.0
+
