@@ -1,4 +1,4 @@
-# littext v0.1
+# littext v0.29
 
 **Automated construct discovery and relationship inference from academic text, for Stata 19**
 
@@ -40,7 +40,7 @@ Install the required Python packages into the environment Stata is bound to:
 Place the contents of this directory anywhere on the filesystem, then add it
 to Stata's adopath. For development:
 
-    adopath + "D:\___QuQu\STATAscript\littext\0.1"
+    adopath + "D:\YOUR_FOLDER\YOUR_FOLDER\littext"
 
 For end-user installation (post-SSC):
 
@@ -100,7 +100,7 @@ Seven figure types are available via `littext graph, type(...)`:
     ├── littext.sthlp              Help file
     ├── _littext_install.ado       Environment check
     ├── _littext_analyze.ado       Main analysis
-    ├── _littext_graph.ado         Visualisation dispatcher
+    ├── _littext_graph.ado         Visualization dispatcher
     ├── _littext_example.ado       Example-data loader
     ├── python/                    Python pipeline
     │   ├── __init__.py
@@ -133,7 +133,7 @@ example illustration in the help file, and SSC submission demonstration.
 
 ## Methodological notes
 
-`littext` v0.1 uses noun-chunk extraction (via spaCy `en_core_web_sm`),
+`littext` uses noun-chunk extraction (via spaCy `en_core_web_sm`),
 sentence-transformer embeddings (default `all-MiniLM-L6-v2`; the
 `allenai/specter2` model is preferable for scholarly text), HDBSCAN synonym
 clustering, normalised pointwise mutual information for the relationship
@@ -151,7 +151,7 @@ v0.1 (this release): noun-chunk extraction, HDBSCAN synonym clustering,
 co-occurrence + dependency-pattern relations, seven figure types,
 Stata frames as default output.
 
-v0.2 (planned): domain-fine-tuned NER for marketing constructs; integration
+v0.3* (planned): domain-fine-tuned NER for marketing constructs; integration
 of REBEL (Huguet Cabot & Navigli, 2021) as an optional relation-extraction
 backend; compass-style comparative analysis across user-defined subcorpora;
 validation against a hand-coded gold standard.
@@ -171,7 +171,7 @@ release is **v0.2.9**; the v0.1.x series ran from v0.1.0 through v0.1.3.
 
 When citing `littext` in academic work, please use:
 
-> Davcik, N. S. 2026. *littext: automated construct and relationship discovery from research text in Stata.* 
+> Davcik, N. S. 2026. *LITTEXT: Stata module for automated construct and relationship discovery from research text.* 
 > Available at:
 > [https://github.com/Davcik/littext](https://github.com/Davcik/littext)
 
