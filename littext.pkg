@@ -1,0 +1,75 @@
+* littext.pkg -- installation manifest for the littext package
+*
+* This file is read by Stata's net command when a user runs
+*
+*     net install littext
+*
+* Every f line below declares one file that net install will copy into
+* the user's PLUS adopath. Comment lines begin with an asterisk at
+* column 1; no other comment syntax is recognised by the manifest
+* grammar.
+*
+v 3
+d littext: automated construct discovery and relationship inference from academic text
+d
+d {bf:littext} extracts candidate construct relationships from a corpus
+d of academic text (titles, abstracts, full texts). It produces three
+d Stata frames -- lt_constructs, lt_relations, lt_diag -- holding the
+d extracted constructs, candidate relationships with confidence scores
+d and evidence sentences, and per-document diagnostics. A companion
+d {bf:littext graph} command produces ten visualisation types (five
+d Stata-native, five matplotlib).
+d
+d The pipeline combines spaCy noun-chunk extraction, sentence-
+d transformer embeddings, HDBSCAN synonym clustering, normalised
+d pointwise mutual information for relationship candidacy, and a
+d six-pattern dependency-arc matcher for relationship valence.
+d
+d Requires Stata 19 with Python integration configured. Required
+d Python packages: spacy, sentence-transformers, hdbscan, scikit-learn,
+d umap-learn, matplotlib, networkx, pandas, numpy. Optional package
+d for the addsentiment option: vaderSentiment. Run {stata littext
+d install, verbose} after installation to check the Python
+d environment.
+d
+d Author: Nebojsa S. Davcik, EM Normandie Business School
+d Support: davcik@live.com
+d ORCID: 0000-0003-1041-8788
+d
+d Distribution-Date: 20260525
+d
+* ----------------------------------------------------------------------
+* Top-level Stata files: dispatchers, subcommand handlers, help, alias.
+* ----------------------------------------------------------------------
+f littext.ado
+f littext.sthlp
+f litt.ado
+f litt.sthlp
+f _littext_install.ado
+f _littext_analyze.ado
+f _littext_graph.ado
+f _littext_example.ado
+*
+* ----------------------------------------------------------------------
+* Python pipeline. Filenames are case-sensitive; preserve forward
+* slashes in the path so net install creates the python/ subdirectory
+* correctly on all platforms.
+* ----------------------------------------------------------------------
+f python/__init__.py
+f python/littext_env.py
+f python/littext_pipeline.py
+f python/littext_extract.py
+f python/littext_embed.py
+f python/littext_cluster.py
+f python/littext_relate.py
+f python/littext_io.py
+f python/littext_state.py
+f python/littext_viz.py
+f python/littext_run.py
+*
+* ----------------------------------------------------------------------
+* Documentation files installed alongside the package.
+* ----------------------------------------------------------------------
+f README.md
+f CHANGELOG.md
+f CITATION.cff
