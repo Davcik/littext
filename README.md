@@ -1,6 +1,6 @@
-# littext v0.29
+# littext
 
-**Automated construct discovery and relationship inference from academic text, for Stata 19**
+**Automated construct discovery and relationship inference from academic text, for Stata**
 
 `littext` is a Stata package that extracts candidate construct relationships
 from a corpus of text (titles, abstracts, full texts). Its intended
