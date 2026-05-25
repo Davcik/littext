@@ -145,19 +145,6 @@ negative, moderating, mediating, causal; always computed; stored in
 text; optional via `addsentiment`; stored in `text_polarity`). These are
 different constructs; do not treat the second as a measure of the first.
 
-## Roadmap
-
-v0.1 (this release): noun-chunk extraction, HDBSCAN synonym clustering,
-co-occurrence + dependency-pattern relations, seven figure types,
-Stata frames as default output.
-
-v0.3* (planned): domain-fine-tuned NER for marketing constructs; integration
-of REBEL (Huguet Cabot & Navigli, 2021) as an optional relation-extraction
-backend; compass-style comparative analysis across user-defined subcorpora;
-validation against a hand-coded gold standard.
-
---- 
-
 ---
 
 ## Changelog
@@ -181,12 +168,12 @@ by reference managers such as Zotero, Mendeley, and JabRef.
 
 ---
 
-## Licence
+## License
 
 `littext` is released under the
 [GNU General Public License version 3 or later](https://www.gnu.org/licenses/gpl-3.0.html)
 (GPL-3.0-or-later). You may redistribute and modify it under the
-terms of that licence; modified versions and larger works that
+terms of that license; modified versions and larger works that
 incorporate `littext` must also be released under GPL-3 or
 later. See [LICENSE](LICENSE) for the full text.
 
