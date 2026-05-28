@@ -30,7 +30,7 @@ it at the end is robust to errors and does not modify the source frames.
 
 program define _littext_graph
     version 19.0
-    syntax , [Type(string) Top(integer 20) Saving(string) OUTdir(string) WEighted Replace NAme(string)]
+    syntax , [Type(string) Top(integer 20) Saving(string) OUTdir(string) WEighted Replace NAme(string) LEVel(string)]
     if "`type'" == "" local type "map"
     if !inlist("`type'", "frequency", "distribution", "trend", "confidence", "extraction") & ///
        !inlist("`type'", "map", "network", "dendrogram", "cooccurrence", "roles") {
@@ -38,6 +38,20 @@ program define _littext_graph
         di as err "  frequency, distribution, trend, confidence, extraction (Stata-native)"
         di as err "  map, network, dendrogram, cooccurrence, roles (matplotlib)"
         exit 198
+    }
+    /* v0.3: validate level(). Accepts leaf, root, or a non-negative
+       integer. Defaults to leaf. */
+    if "`level'" == "" local level "leaf"
+    if !inlist("`level'", "leaf", "root") {
+        capture confirm integer number `level'
+        if _rc {
+            di as err "littext graph: level() must be 'leaf', 'root', or a non-negative integer"
+            exit 198
+        }
+        if `level' < 0 {
+            di as err "littext graph: level() must be non-negative"
+            exit 198
+        }
     }
     capture confirm frame lt_relations
     if _rc {
@@ -63,10 +77,17 @@ program define _littext_graph
     capture mkdir `"`outdir'"'
     /* Stata-native types */
     if inlist("`type'", "frequency", "distribution", "trend", "confidence", "extraction") {
-        _littext_graph_stata, type(`type') top(`top') saving(`"`saving'"') outdir(`"`outdir'"') `replace' name(`"`name'"')
+        _littext_graph_stata, type(`type') top(`top') saving(`"`saving'"') outdir(`"`outdir'"') `replace' name(`"`name'"') level(`level')
         exit
     }
-    /* matplotlib types: dispatch to draw_figure in littext_viz.py */
+    /* matplotlib types: dispatch to draw_figure in littext_viz.py.
+       v0.3 note: level() is honoured only for the Stata-native types in
+       this release; matplotlib renderers are scheduled for v0.3.x. A
+       warning is emitted when level() is set with a matplotlib type. */
+    if "`level'" != "leaf" {
+        di as txt "littext: WARNING -- level(`level') is currently honoured only for Stata-native graph types."
+        di as txt "        The matplotlib renderer for type(`type') ignores level() in v0.3.0."
+    }
     findfile "littext.ado"
     local adopath = subinstr(`"`r(fn)'"', "littext.ado", "", .)
     local pypath = `"`adopath'python"'
@@ -82,18 +103,32 @@ end
 
 program define _littext_graph_stata
     version 19.0
-    syntax , Type(string) [Top(integer 20) Saving(string) OUTdir(string) Replace NAme(string)]
+    syntax , Type(string) [Top(integer 20) Saving(string) OUTdir(string) Replace NAme(string) LEVel(string)]
     if "`name'" == "" local name "littext_`type'"
+    if "`level'" == "" local level "leaf"
     local repl = ("`replace'" != "")
     if `repl' local replopt "replace"
     else local replopt ""
     frame pwf
     local origfrm = r(currentframe)
+    /* v0.3: level() applies meaningfully only to graph types whose
+       x-axis is the construct vocabulary. For other types we warn and
+       proceed at the leaf level. */
+    if "`level'" != "leaf" & !inlist("`type'", "frequency") {
+        di as txt "littext: NOTE -- level(`level') has no effect on type(`type'); proceeding at leaf level."
+    }
     /* Each graph type works on a uniquely-named copy of the source frame. */
     if "`type'" == "frequency" {
         capture frame drop _lt_g_freq
         frame copy lt_constructs _lt_g_freq
         frame change _lt_g_freq
+        /* v0.3: apply hierarchy roll-up to canonical_form before
+           collapsing. _lt_remap_canonical computes the rolled form in
+           place. If the constructs frame predates v0.3 (no
+           hierarchy_depth column), the helper is a no-op. */
+        if "`level'" != "leaf" {
+            _lt_remap_canonical, level(`level')
+        }
         collapse (sum) freq_doc, by(canonical_form)
         gsort -freq_doc
         if _N > `top' keep if _n <= `top'
@@ -159,4 +194,73 @@ program define _littext_graph_stata
     local outstub `"`outdir'/`name'"'
     quietly graph export `"`outstub'.png"', `replopt' width(1600)
     di as txt `"littext: figure saved to "`outstub'.png""'
+end
+
+
+/*
+v0.3 helper: remap canonical_form in the current frame to its ancestor
+at the requested hierarchy level. Operates in place on the current
+frame.
+
+For level("root") the helper uses the precomputed canonical_root column
+that the v0.3 pipeline writes into lt_constructs. For an integer level
+N, the helper walks the parent_canonical chain N steps; this case is
+rarer and slower. If the hierarchy columns are absent (frame predates
+v0.3 or assign_hierarchy was not called), the helper emits a one-line
+note and is a no-op.
+*/
+program define _lt_remap_canonical
+    version 19.0
+    syntax , LEVel(string)
+    capture confirm variable canonical_root
+    if _rc {
+        di as txt "littext: NOTE -- frame lacks canonical_root column; level() not applied."
+        exit 0
+    }
+    if "`level'" == "root" {
+        /* Fast path: substitute canonical_form with the precomputed root. */
+        qui replace canonical_form = canonical_root
+        exit 0
+    }
+    /* Slow path: arbitrary depth N. Walk parent_canonical chain
+       N steps using repeated merges against a parent-lookup table
+       built from lt_constructs. */
+    capture confirm variable parent_canonical
+    if _rc {
+        di as txt "littext: NOTE -- frame lacks parent_canonical column; level() not applied."
+        exit 0
+    }
+    capture confirm variable hierarchy_depth
+    if _rc {
+        di as txt "littext: NOTE -- frame lacks hierarchy_depth column; level() not applied."
+        exit 0
+    }
+    local target_depth = `level'
+    /* Build a one-row-per-canonical lookup table from lt_constructs. */
+    tempfile lookup
+    frame lt_constructs {
+        preserve
+        keep canonical_form parent_canonical
+        bys canonical_form: keep if _n == 1
+        rename canonical_form _from
+        rename parent_canonical _parent
+        qui save `"`lookup'"', replace
+        restore
+    }
+    /* Iteratively walk up. Each iteration reduces hierarchy_depth by
+       one for the rows that needed to be walked. */
+    qui summarize hierarchy_depth, meanonly
+    local max_iter = max(`r(max)' - `target_depth', 1)
+    local iter = 0
+    while `iter' < `max_iter' {
+        qui count if hierarchy_depth > `target_depth' & canonical_form != ""
+        if r(N) == 0 continue, break
+        rename canonical_form _from
+        qui merge m:1 _from using `"`lookup'"', keep(master match) nogenerate
+        qui replace _from = _parent if hierarchy_depth > `target_depth' & _parent != ""
+        rename _from canonical_form
+        qui drop _parent
+        qui replace hierarchy_depth = hierarchy_depth - 1 if hierarchy_depth > `target_depth'
+        local ++iter
+    }
 end

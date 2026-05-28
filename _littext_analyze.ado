@@ -24,13 +24,73 @@ Output: three Stata frames left in memory
 
 program define _littext_analyze, eclass
     version 19.0
-    syntax , Text(varname) [Id(varname) Year(varname) Journal(varname) Unit(string) EMBedmodel(string) MINFreq(string) MAXRelations(integer 100000) ADDSentiment Quiet Saving(string) Replace]
-    if "`unit'" == "" local unit "sentence"
+    syntax , Text(varname) [Id(varname) Year(varname) Journal(varname) Unit(string) EMBedmodel(string) MINFreq(string) MAXRelations(integer 100000) MINTextlen(string) KEEPEmpty ADDSentiment Quiet Saving(string) Replace TEXTtype(string)]
+    /* v0.3 Tier-2: resolve texttype first because it drives the
+       defaults for unit() and mintextlen() that the subsequent
+       option-resolution blocks consume. */
+    local texttype_user = lower(trim("`texttype'"))
+    if "`texttype_user'" == "" {
+        /* Option B: when texttype() is not declared, default to
+           'abstract' and emit a one-line note so the user knows the
+           pipeline made a substantive choice on their behalf. */
+        local texttype "abstract"
+        local texttype_explicit = 0
+    }
+    else {
+        if !inlist("`texttype_user'", "abstract", "fulltext", "transcript", "review", "comment", "other") {
+            di as err "littext: texttype() must be one of:"
+            di as err "        abstract, fulltext, transcript, review, comment, other"
+            exit 198
+        }
+        local texttype "`texttype_user'"
+        local texttype_explicit = 1
+    }
+    /* Texttype-derived defaults for unit() and mintextlen(). These
+       are honoured only when the user has not passed the option
+       explicitly. */
+    if "`texttype'" == "abstract"   { local tt_unit "sentence"  ; local tt_mintextlen 50  }
+    if "`texttype'" == "fulltext"   { local tt_unit "paragraph" ; local tt_mintextlen 500 }
+    if "`texttype'" == "transcript" { local tt_unit "sentence"  ; local tt_mintextlen 30  }
+    if "`texttype'" == "review"     { local tt_unit "sentence"  ; local tt_mintextlen 20  }
+    if "`texttype'" == "comment"    { local tt_unit "sentence"  ; local tt_mintextlen 10  }
+    if "`texttype'" == "other"      { local tt_unit "sentence"  ; local tt_mintextlen 50  }
+    /* unit(): honour explicit user value; otherwise use the
+       texttype-derived default. */
+    if "`unit'" == "" {
+        local unit "`tt_unit'"
+        local unit_source "texttype default"
+    }
+    else {
+        local unit_source "user-specified"
+    }
     if !inlist("`unit'", "sentence", "abstract", "paragraph") {
         di as err "littext: unit() must be sentence, abstract, or paragraph"
         exit 198
     }
     if "`embedmodel'" == "" local embedmodel "all-MiniLM-L6-v2"
+    /* v0.3 Tier-2: mintextlen() defaults to the texttype-derived value
+       when the option is not passed; honour the explicit value
+       otherwise. The texttype defaults are 50/500/30/20/10/50 for
+       abstract/fulltext/transcript/review/comment/other respectively. */
+    local mintextlen_user = trim("`mintextlen'")
+    if "`mintextlen_user'" == "" {
+        local mintextlen = `tt_mintextlen'
+        local mintextlen_source "texttype default"
+    }
+    else {
+        capture confirm integer number `mintextlen_user'
+        if _rc {
+            di as err "littext: mintextlen() must be a non-negative integer"
+            exit 198
+        }
+        local mintextlen = `mintextlen_user'
+        local mintextlen_source "user-specified"
+    }
+    if `mintextlen' < 0 {
+        di as err "littext: mintextlen() must be a non-negative integer"
+        exit 198
+    }
+    local keepempty_flag = ("`keepempty'" != "")
     /* v0.2.6: corpus-size-aware min_freq default.
        For small corpora (under 50 abstracts) the default is 1, which keeps
        single-document constructs in the candidate frame so the relation
@@ -61,6 +121,19 @@ program define _littext_analyze, eclass
         tempvar autoid
         gen long `autoid' = _n
         local id "`autoid'"
+        local id_autogen = 1
+    }
+    else {
+        local id_autogen = 0
+    }
+    /* v0.3 Tier-1 guardrail: verify the text() variable is a string.
+       This is a defensive check that catches misdeclared text variables
+       before any Python is invoked. */
+    capture confirm string variable `text'
+    if _rc {
+        di as err "littext: text() variable '`text'' is not a string variable."
+        di as err "        Cast it to string first (decode/tostring), or supply a different variable."
+        exit 109
     }
     /* Stage 1: cheap environment check (sub-millisecond; uses find_spec). */
     if !`q' di as txt "[1/5] littext: env check..."
@@ -71,9 +144,24 @@ program define _littext_analyze, eclass
     local adopath = subinstr(`"`r(fn)'"', "littext.ado", "", .)
     local pypath = `"`adopath'python"'
     local runscript = `"`pypath'/littext_run.py"'
-    /* v0.2.6: print the min_freq setting and the rationale so the user knows
-       what filter was applied. Suppressed under quiet. */
+    /* v0.2.6 + v0.3: print resolved options so the user knows what
+       filters and defaults were applied. Suppressed under quiet. */
     if !`q' {
+        /* v0.3 Tier-2: texttype note (Option B per design). */
+        if !`texttype_explicit' {
+            di as txt "littext: texttype not declared; defaulting to texttype(abstract)."
+            di as txt "        For full-text corpora pass texttype(fulltext); for transcripts texttype(transcript);"
+            di as txt "        for consumer reviews texttype(review); for social-media comments texttype(comment);"
+            di as txt "        for anything else texttype(other) applies minimal cleaning only."
+        }
+        else {
+            di as txt "littext: texttype=`texttype' (user-specified)."
+        }
+        di as txt "littext: unit=`unit' (`unit_source')"
+        di as txt "littext: mintextlen=`mintextlen' (`mintextlen_source')"
+        if `keepempty_flag' {
+            di as txt "        keepempty set: empty and short rows will be retained (mintextlen ignored)."
+        }
         if "`minfreq_user'" != "" {
             di as txt "littext: minfreq=`minfreq' (user-specified)"
         }
@@ -92,6 +180,63 @@ program define _littext_analyze, eclass
     keep `id' `text' `year' `journal'
     rename `text' lt_text
     rename `id' lt_id
+    /* v0.3 Tier-1 guardrail: row-drop pass with logged counts.
+       Drops in this order (each is logged if any rows are removed):
+         (1) rows where lt_text is missing or empty/whitespace-only;
+         (2) rows where lt_id is missing (only if id() was user-supplied;
+             auto-generated ids are always present by construction);
+         (3) rows shorter than mintextlen characters.
+       Skipped entirely if keepempty is set. */
+    if !`keepempty_flag' {
+        local n_before = _N
+        /* (1) Drop empty/whitespace-only text */
+        qui drop if missing(lt_text)
+        qui drop if trim(lt_text) == ""
+        local n_after_empty = _N
+        local n_drop_empty = `n_before' - `n_after_empty'
+        /* (2) Drop missing id, only when id() was user-supplied */
+        if !`id_autogen' {
+            capture confirm string variable lt_id
+            if _rc == 0 qui drop if missing(lt_id) | trim(lt_id) == ""
+            else        qui drop if missing(lt_id)
+        }
+        local n_after_id = _N
+        local n_drop_id = `n_after_empty' - `n_after_id'
+        /* (3) Drop too-short text */
+        if `mintextlen' > 0 qui drop if strlen(lt_text) < `mintextlen'
+        local n_after_short = _N
+        local n_drop_short = `n_after_id' - `n_after_short'
+        local n_kept = _N
+        if !`q' {
+            di as txt "littext: row-drop summary"
+            di as txt "        rows in:            `n_before'"
+            if `n_drop_empty' > 0 di as txt "        dropped (empty):    `n_drop_empty'"
+            if `n_drop_id' > 0    di as txt "        dropped (no id):    `n_drop_id'"
+            if `n_drop_short' > 0 di as txt "        dropped (< `mintextlen' chr): `n_drop_short'"
+            di as txt "        rows kept:          `n_kept'"
+            /* Material-change warning: more than 25% of rows dropped */
+            if `n_before' > 0 {
+                local drop_share = (`n_before' - `n_kept') / `n_before'
+                if `drop_share' > 0.25 {
+                    local drop_pct = round(`drop_share' * 100)
+                    di as txt ""
+                    di as err "littext: WARNING -- `drop_pct'% of rows were dropped during row-drop."
+                    di as err "        Verify that text() points at the intended column and that"
+                    di as err "        mintextlen() (currently `mintextlen') is appropriate for this text kind."
+                    di as err "        Pass keepempty to disable row-drop and retain all rows."
+                }
+            }
+        }
+        /* No-rows guardrail fires irrespective of quiet -- the user always
+           needs to know why the pipeline cannot proceed. */
+        if `n_kept' == 0 {
+            di as err "littext: ERROR -- no rows remain after row-drop. Cannot proceed."
+            di as err "        Common causes: text() points at a column that is mostly empty"
+            di as err "        or whose entries are all shorter than mintextlen=`mintextlen'."
+            restore
+            exit 459
+        }
+    }
     capture confirm string variable lt_id
     if _rc tostring lt_id, replace force
     if "`year'" != "" rename `year' lt_year

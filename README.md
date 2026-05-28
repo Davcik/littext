@@ -10,12 +10,12 @@ corpus and wants to generate candidate relationships of the form
 later be hand-curated into a formal systematic-literature-review coding
 scheme.
 
-`littext` is the second of a two-package project. Its sister package,
-`litdiscover`, supports systematic literature reviews from researcher-curated
-corpora with manually coded constructs. `littext` has a different purpose:
-automated extraction from raw academic text, without manual coding.
+`litdiscover` is a sister package supporting systematic literature reviews
+from researcher-curated corpora with manually coded constructs. `littext`
+has a different purpose: automated extraction from raw academic text, without
+manual coding.
 
---- 
+---
 
 ## Installation
 
@@ -158,7 +158,7 @@ release is **v0.2.9**; the v0.1.x series ran from v0.1.0 through v0.1.3.
 
 When citing `littext` in academic work, please use:
 
-> Davcik, N. S. 2026. *LITTEXT: Stata module for automated construct and relationship discovery from research text.* 
+> Davcik, N. S. 2026. *LITTEXT: Stata module for automated construct and relationship discovery from research text.*
 > Available at:
 > [https://github.com/Davcik/littext](https://github.com/Davcik/littext)
 
@@ -189,4 +189,3 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 EM Normandie Business School, Oxford, UK
 ORCID: [0000-0003-1041-8788](https://orcid.org/0000-0003-1041-8788)
 Email: davcik {@} live.com
-

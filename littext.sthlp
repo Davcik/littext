@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.2.9  25may2026}{...}
+{* *! version 0.3.0  27may2026}{...}
 {title:Title}
 
 {phang}
@@ -17,7 +17,7 @@ are functionally identical.
 
 {p 8 16 2}
 {bf:littext graph} {cmd:,} [ {opt t:ype(string)} {opt top(#)}
-{opt out:dir(string)} {opt we:ighted} {opt sav:ing(string)} {opt rep:lace} ]
+{opt out:dir(string)} {opt we:ighted} {opt lev:el(string)} {opt sav:ing(string)} {opt rep:lace} ]
 
 {p 8 16 2}
 {bf:littext example} [ {cmd:,} {opt n(#)} {opt gold} {opt clear} ]
@@ -29,17 +29,20 @@ are functionally identical.
 
 {pstd}
 {bf:littext} extracts candidate construct relationships from an unstructured
-corpus of academic text (titles, abstracts, full texts). It is intended for
-the exploratory researcher who has assembled a large corpus and wants to
-generate candidate relationships of the form "X is associated with Y",
-"X moderates the effect of Z on Y", etc., that can then be hand-curated into
-a formal systematic literature review coding scheme.
+corpus of academic text (titles, abstracts, full texts) or other research
+text such as interview transcripts, consumer reviews, and social-media
+comments. It is intended for the exploratory researcher who has assembled a
+large corpus and wants to generate candidate relationships of the form
+"X is associated with Y", "X moderates the effect of Z on Y", etc., that
+can then be hand-curated into a formal systematic literature review coding
+scheme.
 
 {pstd}
-The pipeline is: spaCy noun-chunk extraction; sentence-transformer embedding
-of candidate constructs; HDBSCAN clustering into synonym groups; co-occurrence-
-based relation candidacy with normalized PMI scoring; dependency-pattern
-matching for relationship valence.
+The pipeline is: text-kind-appropriate cleaning (v0.3); spaCy noun-chunk
+extraction; sentence-transformer embedding of candidate constructs;
+HDBSCAN clustering into synonym groups; lexical construct-hierarchy
+detection (v0.3); co-occurrence-based relation candidacy with normalized
+PMI scoring; dependency-pattern matching for relationship valence.
 
 {pstd}
 Results are returned in three Stata frames left in memory:
@@ -56,7 +59,8 @@ Files on disk are produced only if you pass {opt sav:ing()}.
 
 {phang}
 {opt t:ext(varname)} (required) - the variable in the current dataset that
-holds the document text. May be a {bf:str#} or {bf:strL} variable.
+holds the document text. May be a {bf:str#} or {bf:strL} variable. Must be
+a string variable; numeric variables are rejected with an error.
 
 {phang}
 {opt i:d(varname)} - a per-document identifier. If omitted, {bf:_n} is used.
@@ -70,9 +74,29 @@ and stored in {bf:lt_diag}.
 comparative analysis.
 
 {phang}
+{opt textt:ype(string)} - declares the kind of text in the corpus. One of:
+
+{p 8 12 2}{bf:abstract}    - academic abstracts (default; Emerald and copyright cleaners){p_end}
+{p 8 12 2}{bf:fulltext}    - full papers (above plus LaTeX, references, captions){p_end}
+{p 8 12 2}{bf:transcript}  - interview / focus group transcripts (speaker labels, timestamps){p_end}
+{p 8 12 2}{bf:review}      - consumer reviews (HTML, ratings, verified-purchase labels){p_end}
+{p 8 12 2}{bf:comment}     - social-media comments (URLs; emoticons preserved){p_end}
+{p 8 12 2}{bf:other}       - minimal cleaning only (whitespace, control chars){p_end}
+
+{pstd}
+If {opt textt:ype()} is not declared, the package defaults to
+{bf:abstract} and emits a note indicating that this default was applied.
+The declaration drives the cleaning regime, the default {opt u:nit()},
+and the default {opt mint:extlen()}. A post-clean median-length sanity
+check warns when the corpus length is outside the typical window for
+the declared texttype, which most often indicates a misdeclared
+{opt t:ext()} variable.
+
+{phang}
 {opt u:nit(string)} - unit of analysis for relationship candidacy. One of
-{bf:sentence} (default; high precision), {bf:abstract} (high recall),
-{bf:paragraph}.
+{bf:sentence}, {bf:abstract}, {bf:paragraph}. If not specified, defaults
+from {opt textt:ype()}: sentence for abstract/transcript/review/comment/other,
+paragraph for fulltext.
 
 {phang}
 {opt emb:edmodel(string)} - name of the sentence-transformers model used for
@@ -81,15 +105,25 @@ preferred alternative is {bf:allenai/specter2}.
 
 {phang}
 {opt minf:req(#)} - minimum document frequency for a candidate construct to
-be retained. Default: {bf:1} for corpora with fewer than 50
-documents (single-document constructs are kept so the relation matcher
-can exercise them); {bf:2} for corpora of 50 or more documents (acts as
-a noise filter). Override by passing the option explicitly; the resolved
-value and its rationale are printed at run time.
+be retained. Default: {bf:1} for corpora with fewer than 50 documents,
+{bf:2} otherwise. Resolved value and rationale are printed at run time.
 
 {phang}
 {opt maxr:elations(#)} - cap on the number of candidate relationships
 written to {bf:lt_relations} (highest-confidence first). Default {bf:100000}.
+
+{phang}
+{opt mint:extlen(#)} - minimum text length in characters. Rows whose
+{opt t:ext()} value is shorter than this threshold are dropped before the
+pipeline runs. If not specified, defaults from {opt textt:ype()}: 50 for
+abstract/other, 500 for fulltext, 30 for transcript, 20 for review,
+10 for comment. Pass {opt keepe:mpty} to disable row-dropping entirely.
+
+{phang}
+{opt keepe:mpty} - retain all rows including empty, whitespace-only, and
+below-threshold ones. Default behaviour is to drop these with a logged
+count. Use this when the corpus is being analysed for a purpose that
+requires preserving the input row count.
 
 {phang}
 {opt addsentiment} - additionally compute VADER affective polarity on each
@@ -133,11 +167,21 @@ confidence (viridis) rather than discretely by relation type. Useful when
 edge strength matters more than syntactic type.
 
 {phang}
+{opt lev:el(string)} - hierarchy specificity for construct-vocabulary graph
+types. Accepts {bf:leaf} (default; constructs at maximum specificity),
+{bf:root} (each construct replaced by its hierarchy root), or a
+non-negative integer N (collapse to depth N). Currently affects
+{bf:type(frequency)} only; other Stata-native types ignore {opt level()}
+because their x-axis is not construct-keyed. Matplotlib renderers ignore
+{opt level()} in v0.3.0 (a warning is emitted). The hierarchy is computed
+by the lexical right-substring rule plus the hyphenated-prefix rule
+described in the Notes section.
+
+{phang}
 {opt out:dir(string)} - directory where figure files will be written.
 Accepts an absolute path (e.g. {bf:"D:\projects\figures"}). If omitted or
 given as a relative path, the current Stata working directory ({bf:c(pwd)})
-is used. The resolved absolute path is always printed, so the user knows
-where the files were saved.
+is used. The resolved absolute path is always printed.
 
 {phang}
 {opt sav:ing(string)} - output file stub for matplotlib figures (PNG and PDF
@@ -148,7 +192,8 @@ are written). For Stata-native graphs, the file is saved as PNG via
 
 {pstd}
 {bf:lt_constructs}: construct_id, surface_form, canonical_form, cluster_id,
-freq_doc, freq_total.
+freq_doc, freq_total, parent_canonical, canonical_root, hierarchy_depth,
+is_root.
 
 {pstd}
 {bf:lt_relations}: rel_id, doc_id, unit_id, source, target,
@@ -174,22 +219,88 @@ n_relations_extracted.
 {phang}
 {bf:assoc}      - non-directional or unclassified co-occurrence{p_end}
 
+{title:Notes}
+
+{pstd}
+{bf:v0.3 row-drop behaviour.} By default, {cmd:littext analyze} drops rows
+where the {opt t:ext()} variable is missing or whitespace-only, rows where
+a user-supplied {opt i:d()} variable is missing, and rows whose text is
+shorter than {opt mint:extlen()} characters. A summary of the drops is
+printed (suppressed under {opt q:uiet}). A warning is emitted if more
+than 25% of input rows are dropped, which most often indicates that the
+{opt t:ext()} variable points at the wrong column.
+
+{pstd}
+{bf:v0.3 text-kind declaration.} The {opt textt:ype()} option drives
+three downstream defaults: which cleaning regime is applied to the raw
+text; the default segmentation {opt u:nit()}; and the default
+{opt mint:extlen()}. Each derived default is overridable by passing the
+corresponding option explicitly. The resolved values and their sources
+("user-specified" vs "texttype default") are printed at run time.
+A post-clean median-length sanity check warns when the corpus length
+falls outside the typical window for the declared texttype.
+
+{pstd}
+{bf:v0.3 construct hierarchy.} Four new columns are added to
+{bf:lt_constructs}: {bf:parent_canonical} (the canonical form of the
+immediate IS-A parent, or empty if the construct is a root),
+{bf:canonical_root} (the topmost ancestor; equals {bf:canonical_form}
+for roots), {bf:hierarchy_depth} (zero for roots, one for direct
+children), and {bf:is_root} (1 if root, 0 otherwise). The hierarchy is
+detected by a lexical right-substring rule with a frequency prior,
+supplemented by a hyphenated-prefix rule that admits constructs of the
+form {it:X-based Parent}, {it:X-driven Parent}, {it:X-led Parent}, and
+{it:X-oriented Parent} as children of {it:Parent} regardless of the
+frequency prior. The rule is English-specific and is silent on
+conceptually-subsumed but lexically-distinct relations (e.g. it does
+not link {it:brand reputation} to {it:brand equity} because they
+share no right substring).
+
+{pstd}
+{bf:Example hierarchies the rule recovers.} If a corpus contains
+{it:brand equity} and any of {it:consumer-based brand equity},
+{it:financial-based brand equity}, {it:online brand equity}, or
+{it:employee-based brand equity}, the rule places each subtype as a
+depth-1 child of {it:brand equity}. Query the hierarchy with:
+
+{phang}{cmd:. frame lt_constructs: list canonical_form parent_canonical canonical_root is_root, sepby(canonical_root)}{p_end}
+
+{pstd}
+or roll up at the graph level with:
+
+{phang}{cmd:. littext graph, type(frequency) level(root)}{p_end}
+
 {title:Examples}
 
 {pstd}For fast development and smoke-testing (30 abstracts; runs in seconds):{p_end}
 
 {phang}{cmd:. littext example, clear}{p_end}
-{phang}{cmd:. littext analyze, text(abstract) id(article_id) year(year) journal(journal)}{p_end}
+{phang}{cmd:. littext analyze, text(abstract) id(article_id) year(year) journal(journal) texttype(abstract)}{p_end}
 
 {pstd}For the full demonstration corpus (200 abstracts):{p_end}
 
 {phang}{cmd:. littext example, n(200) clear}{p_end}
-{phang}{cmd:. littext analyze, text(abstract) id(article_id) year(year) journal(journal)}{p_end}
+{phang}{cmd:. littext analyze, text(abstract) id(article_id) year(year) journal(journal) texttype(abstract)}{p_end}
 {phang}{cmd:. list source target relation_type confidence in 1/10}{p_end}
 {phang}{cmd:. tab relation_type}{p_end}
 {phang}{cmd:. littext graph, type(map)}{p_end}
 {phang}{cmd:. littext graph, type(network) top(25)}{p_end}
-{phang}{cmd:. littext graph, type(distribution)}{p_end}
+{phang}{cmd:. littext graph, type(frequency) level(root)}{p_end}
+
+{pstd}For a corpus of interview transcripts:{p_end}
+
+{phang}{cmd:. use my_transcripts.dta, clear}{p_end}
+{phang}{cmd:. littext analyze, text(transcript) id(case_id) texttype(transcript)}{p_end}
+
+{pstd}For a corpus of consumer reviews:{p_end}
+
+{phang}{cmd:. use product_reviews.dta, clear}{p_end}
+{phang}{cmd:. littext analyze, text(review_text) id(review_id) texttype(review)}{p_end}
+
+{pstd}For full-text academic papers (LaTeX or PDF-extracted text):{p_end}
+
+{phang}{cmd:. use my_fulltexts.dta, clear}{p_end}
+{phang}{cmd:. littext analyze, text(body) id(paper_id) texttype(fulltext)}{p_end}
 
 {pstd}To inspect the ground-truth relationships embedded in a corpus:{p_end}
 
@@ -229,16 +340,20 @@ scikit-learn, umap-learn, matplotlib, networkx, pandas, numpy. The spaCy
 model {bf:en_core_web_sm} must be downloaded once via
 {cmd:python -m spacy download en_core_web_sm}.
 
-{title:Limitations of v0.1}
+{title:Limitations}
 
 {pstd}
-{bf:littext} v0.1 uses noun-chunk extraction rather than a domain-trained NER
-model, and co-occurrence + dependency-pattern matching rather than a trained
-relation extractor. It is therefore best understood as a candidate-generation
-tool whose output requires manual curation before being treated as a coding
-scheme. Quantitative precision/recall figures should not be reported against
-the bundled synthetic corpus.
+{bf:littext} uses noun-chunk extraction rather than a domain-trained NER
+model, and co-occurrence plus dependency-pattern matching rather than a
+trained relation extractor. It is therefore best understood as a
+candidate-generation tool whose output requires manual curation before
+being treated as a coding scheme. Quantitative precision/recall figures
+should not be reported against the bundled synthetic corpus.
 
+{pstd}
+The v0.3 construct-hierarchy detector and the {opt textt:ype()} cleaning
+regimes are English-specific. The hierarchy rule does not recover
+conceptual subsumption that lacks lexical signal.
 
 {title:References}
 
@@ -247,8 +362,8 @@ Bouma, G. (2009). Normalized (pointwise) mutual information in collocation
 extraction. {it:Proceedings of GSCL}, 31-40.
 
 {pstd}
-Grootendorst, M. (2022). BERTopic: Neural topic modeling with a class-based
-TF-IDF procedure. {it:arXiv:2203.05794}.
+Hearst, M. A. (1992). Automatic acquisition of hyponyms from large text
+corpora. In {it:COLING-92}, 539-545.
 
 {pstd}
 Hutto, C. J., & Gilbert, E. (2014). VADER: A parsimonious rule-based model
@@ -318,5 +433,4 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 {title:Also see}
 
 {phang}Short-form alias: {helpb litt}{p_end}
-
 
