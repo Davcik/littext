@@ -68,6 +68,13 @@ def write_constructs_frame(df: pd.DataFrame) -> None:
     _add_var(f, "cluster_id",      "long",      n)
     _add_var(f, "freq_doc",        "long",      n)
     _add_var(f, "freq_total",      "long",      n)
+    # v0.3 hierarchy columns. Defaults written when the columns are
+    # absent from the DataFrame (e.g., when assign_hierarchy was not
+    # called in older test invocations).
+    _add_var(f, "parent_canonical","str_short", n)
+    _add_var(f, "canonical_root",  "str_short", n)
+    _add_var(f, "hierarchy_depth", "long",      n)
+    _add_var(f, "is_root",         "byte",      n)
     if n == 0:
         return
     f.setObsTotal(n)
@@ -78,6 +85,13 @@ def write_constructs_frame(df: pd.DataFrame) -> None:
         f.store("cluster_id",     i, int(row.get("cluster_id", -1)))
         f.store("freq_doc",       i, int(row["freq_doc"]))
         f.store("freq_total",     i, int(row["freq_total"]))
+        f.store("parent_canonical", i, _coerce_str(row.get("parent_canonical", ""), 80))
+        # canonical_root defaults to the construct's own canonical_form
+        # when no hierarchy is set (i.e., the construct is itself the root).
+        canon_root_default = row.get("canonical_form", row["surface_form"])
+        f.store("canonical_root",   i, _coerce_str(row.get("canonical_root", canon_root_default), 80))
+        f.store("hierarchy_depth",  i, int(row.get("hierarchy_depth", 0)))
+        f.store("is_root",          i, int(row.get("is_root", 1)))
 
 
 def write_relations_frame(df: pd.DataFrame) -> None:

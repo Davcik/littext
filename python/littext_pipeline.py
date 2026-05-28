@@ -21,6 +21,7 @@ import pandas as pd
 from littext_extract import extract_constructs
 from littext_embed import embed_constructs
 from littext_cluster import cluster_constructs
+from littext_hierarchy import assign_hierarchy
 from littext_relate import score_relations
 from littext_io import write_constructs_frame, write_relations_frame, write_diag_frame
 from littext_state import save_state
@@ -29,61 +30,115 @@ from littext_state import save_state
 # Emerald-style structured-abstract section headers. These prefix substantive
 # sentences but should be removed before parsing so the parser does not treat
 # "Findings" as a noun chunk or as the subject of the following clause.
-_EMERALD_SECTIONS = re.compile(
-    r"\b(Purpose|Design/methodology/approach|Methodology|Methodology/approach|"
-    r"Findings|Originality/value|Originality|Research limitations/implications|"
-    r"Research limitations|Practical implications|Social implications|"
-    r"Theoretical implications|Managerial implications|Implications|"
-    r"Limitations|Conclusion|Conclusions|Contribution|Background|Aim|Aims|"
-    r"Objective|Objectives|Approach|Results|Discussion)"
-    r"\s*[:\-\u2013\u2014]\s*",
-    flags=re.IGNORECASE,
-)
-
-# Copyright trailers: everything from a copyright symbol or a "Published by"
-# / "All rights reserved" marker through end-of-string is stripped. We match
-# from the first such marker to the end so multi-publisher trailers (e.g.
-# "(c) 2019 Informa UK Ltd, trading as Taylor & Francis Group") are removed
-# wholesale.
-_COPYRIGHT_TAIL = re.compile(
-    r"(?:\u00a9|\(c\)|Copyright\s|All rights reserved|"
-    r"Published by\b|Elsevier B\.V\.|Elsevier Ltd\.?|Emerald Publishing|"
-    r"Informa UK|Taylor\s*&\s*Francis|Wiley[- ]Blackwell|Springer Nature|"
-    r"SAGE Publications).*$",
-    flags=re.IGNORECASE | re.DOTALL,
-)
+# Note: the v0.2.9 _EMERALD_SECTIONS and _COPYRIGHT_TAIL regexes have
+# moved to littext_cleaners.py as part of the v0.3 Tier-2 refactor.
+# The _clean_text() function below remains for backward compatibility
+# but delegates to littext_cleaners._clean_abstract().
 
 
 def _clean_text(s: str) -> str:
-    """Strip Emerald section labels and publisher copyright tails from one
-    document's text. Idempotent and safe on text that contains neither."""
-    if not isinstance(s, str) or not s:
-        return ""
-    s = _COPYRIGHT_TAIL.sub("", s)
-    s = _EMERALD_SECTIONS.sub("", s)
-    # Collapse whitespace runs left by the substitutions
-    s = re.sub(r"\s+", " ", s).strip()
-    return s
+    """Deprecated since v0.3.0. Use littext_cleaners.clean_for_texttype
+    instead. Preserved for backward compatibility with any external
+    code that imports this function; delegates to the 'abstract'
+    cleaner, which reproduces the v0.2.9 behaviour exactly."""
+    from littext_cleaners import _clean_abstract
+    return _clean_abstract(s)
 
 
-def _load_corpus(corpus_path: str) -> pd.DataFrame:
+def _load_corpus(corpus_path: str,
+                 min_text_len: int = 0,
+                 keep_empty: bool = False,
+                 texttype: str = "abstract") -> pd.DataFrame:
     """Load the temp .dta written by _littext_analyze.ado and apply
-    pre-extraction text cleanup (publisher boilerplate, copyright tails)."""
+    pre-extraction text cleanup (publisher boilerplate, copyright tails,
+    and any further patterns appropriate to the declared texttype).
+
+    The principal row-drop pass is performed Stata-side in _littext_analyze
+    before the .dta is written. This function additionally performs a
+    defensive post-cleanup drop to catch the corner case where text strings
+    pass Stata-side validation but the cleaning step strips them down to
+    whitespace (this can happen, for example, when a row contains only an
+    Emerald section header with no actual abstract body).
+
+    Parameters
+    ----------
+    corpus_path : str
+        Path to the temporary .dta marshalled by _littext_analyze.
+    min_text_len : int, default 0
+        Defensive secondary minimum. When > 0, rows whose cleaned text is
+        shorter than this character count are dropped post-cleanup. The
+        Stata-side filter has already applied the user-facing threshold
+        from mintextlen(); this value is a safety net catching any
+        substrings the cleaner stripped below the threshold.
+    keep_empty : bool, default False
+        If True, skip the post-cleanup drop entirely.
+    texttype : str, default "abstract"
+        Selects the cleaning regime. One of the names in
+        littext_cleaners.TEXTTYPE_NAMES. Unknown values fall through
+        to the 'other' cleaner (minimal cleaning).
+
+    Returns
+    -------
+    pd.DataFrame with columns lt_id (str), lt_text (str, cleaned),
+    lt_journal (str), lt_year (Int64).
+    """
+    from littext_cleaners import clean_for_texttype, get_texttype_length_window
+
     df = pd.read_stata(corpus_path, convert_categoricals=False, convert_missing=False)
-    n = len(df)
+    n_in = len(df)
     if "lt_id" not in df.columns:
-        df["lt_id"] = [f"D{i+1:06d}" for i in range(n)]
+        df["lt_id"] = [f"D{i+1:06d}" for i in range(n_in)]
     df["lt_id"] = df["lt_id"].astype(str)
     if "lt_text" not in df.columns:
-        df["lt_text"] = [""] * n
-    df["lt_text"] = df["lt_text"].fillna("").astype(str).map(_clean_text)
+        df["lt_text"] = [""] * n_in
+    df["lt_text"] = df["lt_text"].fillna("").astype(str).map(
+        lambda s: clean_for_texttype(s, texttype)
+    )
     if "lt_journal" not in df.columns:
-        df["lt_journal"] = [""] * n
+        df["lt_journal"] = [""] * n_in
     df["lt_journal"] = df["lt_journal"].fillna("").astype(str)
     if "lt_year" in df.columns:
         df["lt_year"] = pd.to_numeric(df["lt_year"], errors="coerce")
     else:
-        df["lt_year"] = pd.Series([pd.NA] * n, dtype="Int64")
+        df["lt_year"] = pd.Series([pd.NA] * n_in, dtype="Int64")
+
+    if not keep_empty:
+        mask = df["lt_text"].str.strip().str.len() > 0
+        if min_text_len > 0:
+            mask &= df["lt_text"].str.len() >= int(min_text_len)
+        n_dropped = int((~mask).sum())
+        if n_dropped > 0:
+            print(f"  littext: _load_corpus dropped {n_dropped} additional row(s) "
+                  f"after text-cleaning (rows became empty or shorter than "
+                  f"min_text_len={min_text_len}).", flush=True)
+            df = df[mask].reset_index(drop=True)
+        if len(df) == 0:
+            raise RuntimeError(
+                "littext: no rows remain after text-cleaning. The corpus "
+                "may consist entirely of publisher boilerplate, or "
+                "mintextlen() may be set too high for this text kind."
+            )
+
+    # v0.3 Tier-2: post-clean length sanity check. Compute the median
+    # character length of the kept rows and warn if it falls outside the
+    # expected window for the declared texttype.
+    warn_below, warn_above = get_texttype_length_window(texttype)
+    if warn_below is not None or warn_above is not None:
+        median_len = int(df["lt_text"].str.len().median())
+        msg = None
+        if warn_below is not None and median_len < warn_below:
+            msg = (f"littext: WARNING -- median text length {median_len} chars "
+                   f"is below the typical window for texttype({texttype}) "
+                   f"({warn_below}-{warn_above}). The text() variable may be "
+                   f"mis-declared (e.g., titles supplied in place of abstracts).")
+        elif warn_above is not None and median_len > warn_above:
+            msg = (f"littext: WARNING -- median text length {median_len} chars "
+                   f"is above the typical window for texttype({texttype}) "
+                   f"({warn_below}-{warn_above}). Consider texttype(fulltext) "
+                   f"if the corpus contains full-text documents.")
+        if msg is not None:
+            print(f"  {msg}", flush=True)
+
     return df
 
 
@@ -95,10 +150,17 @@ def run_pipeline(
     max_relations: int = 100_000,
     add_sentiment: bool = False,
     quiet: bool = False,
+    min_text_len: int = 0,
+    keep_empty: bool = False,
+    texttype: str = "abstract",
 ) -> None:
     """End-to-end pipeline.
 
-    See module docstring for parameter semantics.
+    See module docstring for parameter semantics. The Stata-side
+    _littext_analyze.ado performs the principal row-drop pass before
+    marshalling; min_text_len and keep_empty here govern the defensive
+    post-cleanup pass in _load_corpus. texttype selects the cleaning
+    regime (default: 'abstract', preserving v0.2.9 behaviour).
     """
     import sys as _sys
     import time as _time
@@ -113,8 +175,10 @@ def run_pipeline(
 
     t0 = _time.time()
     log("(a) loading corpus from temp .dta...")
-    corpus = _load_corpus(corpus_path)
-    log(f"    -> {len(corpus)} documents loaded  ({_time.time()-t0:.1f}s)")
+    corpus = _load_corpus(corpus_path, min_text_len=min_text_len,
+                          keep_empty=keep_empty, texttype=texttype)
+    log(f"    -> {len(corpus)} documents loaded (texttype={texttype}) "
+        f"({_time.time()-t0:.1f}s)")
 
     t1 = _time.time()
     log("(b) loading spaCy en_core_web_sm (first call may take ~5-15s)...")
@@ -138,6 +202,18 @@ def run_pipeline(
     constructs_df = cluster_constructs(constructs_df, construct_embeddings)
     n_canon = constructs_df["canonical_form"].nunique()
     log(f"    -> {n_canon} canonical clusters  ({_time.time()-t4:.1f}s)")
+
+    # v0.3: lexical-hierarchy detector. Adds parent_canonical,
+    # canonical_root, hierarchy_depth, is_root columns to
+    # constructs_df. Independent of synonym clustering -- this is a
+    # second pass over canonical forms.
+    t4b = _time.time()
+    log("(e2) detecting lexical construct hierarchy...")
+    constructs_df = assign_hierarchy(constructs_df)
+    n_roots = int(constructs_df["is_root"].sum())
+    n_subtypes = int((constructs_df["parent_canonical"] != "").sum())
+    log(f"    -> {n_roots} root constructs, {n_subtypes} subtype assignments  "
+        f"({_time.time()-t4b:.1f}s)")
 
     t5 = _time.time()
     log("(f) scoring candidate relationships...")
