@@ -55,7 +55,7 @@ d Author: Nebojsa S. Davcik, EM Normandie Business School
 d Support: davcik@live.com
 d ORCID: 0000-0003-1041-8788
 d
-d Distribution-Date: 20260529
+d Distribution-Date: 20260531
 d
 * ----------------------------------------------------------------------
 * Top-level Stata files: dispatchers, subcommand handlers, help, alias.
@@ -108,16 +108,14 @@ f CHANGELOG.md
 f CITATION.cff
 *
 * ----------------------------------------------------------------------
-* Example data. The two .dta files are force-installed (F) so
-* _littext_example.ado can findfile them at run time after a flattened
+* Example data. The corpus .dta is force-installed (F) so
+* _littext_example.ado can findfile it at run time after a flattened
 * install, exactly like the Python modules. The CSV / XLSX mirrors and
 * the corpus README are ancillary (f): human-facing provenance, never
 * read by the package.
 * ----------------------------------------------------------------------
 F data/littext_example.dta
-F data/littext_example_gold.dta
 f data/littext_rbv_synth_v01_abstracts.csv
-f data/littext_rbv_synth_v01_gold.csv
 f data/littext_rbv_synth_v01.xlsx
 f data/littext_rbv_synth_v01_README.md
 *

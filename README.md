@@ -69,10 +69,10 @@ required package.
 
     use my_corpus.dta, clear
     littext analyze, text(abstract) id(article_id) year(year) journal(journal)
-    list source target relation_type confidence in 1/20
-    tab relation_type
-    littext graph, type(map)
-    littext graph, type(network)
+    frame lt_relations: list source target relation_type confidence in 1/20
+    frame lt_relations: tab relation_type
+    littext graph, type(map) outdir("D:/figs")
+    littext graph, type(network) outdir("D:/figs")
 
 ## Output
 
@@ -151,45 +151,27 @@ files. Example: `littext graph, type(network) outdir("D:/figs") format(html)`.
     │   └── littext_viz.py         matplotlib figures
     ├── data/                      Synthetic corpus
     │   ├── littext_example.dta         300 abstracts (loaded by littext example)
-    │   ├── littext_example_gold.dta    1280 ground-truth relations
-    │   ├── littext_rbv_synth_v01_abstracts.csv
-    │   ├── littext_rbv_synth_v01_gold.csv
-    │   ├── littext_rbv_synth_v01.xlsx
-    │   └── littext_rbv_synth_v01_README.md
-    └── tests/                     Developer regression suite (not installed)
-        ├── test_cleaners.py            pure-Python unit tests
-        ├── test_hierarchy.py
-        ├── test_load_corpus_drop.py
-        ├── littext_smoke.do            end-to-end pipeline regression test (Stata)
-        ├── littext_eval.do             relation-extraction eval harness (Stata)
-        ├── claude_eval_relations.py    P/R/F1 scorer with regression floor (Python)
-        ├── test_eval_relations.py      unit tests for the scorer (Python)
-        └── test_viz_format.py          unit tests for format() helpers (Python)
+    │   └── littext_rbv_synth_v01_README.md   schema and provenance
+    └── usecases/                  Worked research workflows
+        └── USECASES.md                 narrative walkthrough of seven workflows
 
 ## Synthetic corpus
 
 The `data/` directory contains a synthetic corpus themed on the
-resource-based view of the firm: 300 abstracts and their ground-truth
-relationships, supplied as CSV and XLSX (see
-`data/littext_rbv_synth_v01_README.md` for the schema and provenance). The
-corpus is **synthetic** and must not be cited as a real bibliometric
-resource; its purpose is end-to-end testing, example illustration, and
-submission demonstration. Because it is generated from the same construct
-and dependency-pattern substrate the extractor targets, it is suitable as
-a controlled testbed and regression anchor but **not** as a basis for
-reporting precision/recall as external validation.
+resource-based view of the firm: 300 abstracts in `littext_example.dta`
+(see `data/littext_rbv_synth_v01_README.md` for the schema and
+provenance). The corpus is **synthetic** and must not be cited as a real
+bibliometric resource; its purpose is end-to-end testing, example
+illustration, and submission demonstration.
 
-The bundled example is wired to `littext_example.dta` (300 abstracts) and
-`littext_example_gold.dta` (1280 relations), both built from the CSVs by
-`claude_make_example_dta.py`. Load and analyse it with:
+The bundled example is wired to `littext_example.dta` (300 abstracts).
+Load and analyse it with:
 
     littext example, clear
     littext analyze, text(abstract) id(article_id) year(year) journal(journal)
-    littext example, gold clear    // inspect the ground-truth relations
 
-The five relation types present in the gold are `pos_assoc`, `neg_assoc`,
-`moderates`, `mediates`, and `assoc`. (The extractor can additionally emit
-`causes`; the synthetic gold simply contains no causal items.)
+The relation types the extractor can emit are `pos_assoc`, `neg_assoc`,
+`moderates`, `mediates`, `causes`, and `assoc`.
 
 ## Methodological notes
 
@@ -210,7 +192,7 @@ different constructs; do not treat the second as a measure of the first.
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release history. The current
-release is **v0.4.8**.
+release is **v0.4.9**.
 
 ---
 

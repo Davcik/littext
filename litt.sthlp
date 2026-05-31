@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.4.8  29may2026}{...}
+{* *! version 0.4.9  31may2026}{...}
 {title:Title}
 
 {phang}
@@ -26,7 +26,7 @@ are functionally identical.
 {opt col:umns(string)} ]
 
 {p 8 16 2}
-{bf:littext example} [ {cmd:,} {opt gold} {opt clear} ]
+{bf:littext example} [ {cmd:,} {opt clear} ]
 
 {p 8 16 2}
 {bf:littext install} [ {cmd:,} {opt q:uiet} {opt v:erbose} ]
@@ -373,11 +373,6 @@ or roll up at the graph level with:
 
 {phang}{cmd:. use my_fulltexts.dta, clear}{p_end}
 {phang}{cmd:. littext analyze, text(body) id(paper_id) texttype(fulltext)}{p_end}
-
-{pstd}To inspect the ground-truth relationships embedded in a corpus:{p_end}
-
-{phang}{cmd:. littext example, gold clear}{p_end}
-{phang}{cmd:. list source target relation_type in 1/15}{p_end}
 
 {title:Sentiment analysis: a note}
 
