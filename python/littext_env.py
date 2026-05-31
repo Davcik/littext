@@ -25,6 +25,7 @@ REQUIRED = [
     ("umap",                 "umap-learn",           "pip install umap-learn",           True),
     ("matplotlib",           "matplotlib",           "pip install matplotlib",           True),
     ("networkx",             "networkx",             "pip install networkx",             True),
+    ("plotly",               "plotly",               "pip install plotly",               True),
     ("pandas",               "pandas",               "pip install pandas",               True),
     ("numpy",                "numpy",                "pip install numpy",                True),
 ]

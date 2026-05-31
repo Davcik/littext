@@ -72,7 +72,7 @@ TEXTTYPE_DEFAULTS: Dict[str, dict] = {
 # outside the outer bound. The format is (warn_below, warn_above);
 # either bound can be None to disable the corresponding direction.
 TEXTTYPE_LENGTH_WINDOWS: Dict[str, tuple] = {
-    "abstract":   (200, 6000),
+    "abstract":   (200, 10000),
     "fulltext":   (3000, 200_000),
     "transcript": (1000, 200_000),
     "review":     (30, 3000),
