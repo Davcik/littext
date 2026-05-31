@@ -24,6 +24,12 @@ Output: three Stata frames left in memory
 
 program define _littext_analyze, eclass
     version 19.0
+    /* Option B (v0.4.8): remember the frame the user called analyze from,
+       so we can return them to it at the end. analyze populates the named
+       result frames lt_constructs / lt_relations / lt_diag, but leaving
+       the user's active frame unchanged is least surprising and lets a
+       second analyze on the same data succeed without a manual reload. */
+    local entry_frame = c(frame)
     syntax , Text(varname) [Id(varname) Year(varname) Journal(varname) Unit(string) EMBedmodel(string) MINFreq(string) MAXRelations(integer 100000) MINTextlen(string) KEEPEmpty ADDSentiment Quiet Saving(string) Replace TEXTtype(string)]
     /* v0.3 Tier-2: resolve texttype first because it drives the
        defaults for unit() and mintextlen() that the subsequent
@@ -48,12 +54,30 @@ program define _littext_analyze, eclass
     /* Texttype-derived defaults for unit() and mintextlen(). These
        are honoured only when the user has not passed the option
        explicitly. */
-    if "`texttype'" == "abstract"   { local tt_unit "sentence"  ; local tt_mintextlen 50  }
-    if "`texttype'" == "fulltext"   { local tt_unit "paragraph" ; local tt_mintextlen 500 }
-    if "`texttype'" == "transcript" { local tt_unit "sentence"  ; local tt_mintextlen 30  }
-    if "`texttype'" == "review"     { local tt_unit "sentence"  ; local tt_mintextlen 20  }
-    if "`texttype'" == "comment"    { local tt_unit "sentence"  ; local tt_mintextlen 10  }
-    if "`texttype'" == "other"      { local tt_unit "sentence"  ; local tt_mintextlen 50  }
+    if "`texttype'" == "abstract" {
+        local tt_unit "sentence"
+        local tt_mintextlen 50
+    }
+    if "`texttype'" == "fulltext" {
+        local tt_unit "paragraph"
+        local tt_mintextlen 500
+    }
+    if "`texttype'" == "transcript" {
+        local tt_unit "sentence"
+        local tt_mintextlen 30
+    }
+    if "`texttype'" == "review" {
+        local tt_unit "sentence"
+        local tt_mintextlen 20
+    }
+    if "`texttype'" == "comment" {
+        local tt_unit "sentence"
+        local tt_mintextlen 10
+    }
+    if "`texttype'" == "other" {
+        local tt_unit "sentence"
+        local tt_mintextlen 50
+    }
     /* unit(): honour explicit user value; otherwise use the
        texttype-derived default. */
     if "`unit'" == "" {
@@ -138,12 +162,12 @@ program define _littext_analyze, eclass
     /* Stage 1: cheap environment check (sub-millisecond; uses find_spec). */
     if !`q' di as txt "[1/5] littext: env check..."
     _littext_install, quiet
-    /* Stage 2: resolve package paths. */
+    /* Stage 2: resolve the package's Python directory (development or
+       flattened-install layout) via the shared resolver. */
     if !`q' di as txt "[2/5] littext: resolving package path..."
-    findfile "littext.ado"
-    local adopath = subinstr(`"`r(fn)'"', "littext.ado", "", .)
-    local pypath = `"`adopath'python"'
-    local runscript = `"`pypath'/littext_run.py"'
+    _littext_resolve, subdir(python) name(littext_run.py)
+    local pypath `"`r(dir)'"'
+    local runscript `"`r(path)'"'
     /* v0.2.6 + v0.3: print resolved options so the user knows what
        filters and defaults were applied. Suppressed under quiet. */
     if !`q' {
@@ -245,8 +269,21 @@ program define _littext_analyze, eclass
     else gen str1 lt_journal = ""
     qui save "`corpus_dta'", replace
     restore
-    /* Stage 4: create the three output frames so Python can populate them. */
+    /* Stage 4: create the three output frames so Python can populate them.
+       Switch to the entry frame first. A previous analyze leaves the
+       result frames defined; Stata refuses to drop the current frame, so
+       dropping must happen from a frame that is not one of the three. The
+       entry frame is guaranteed safe: syntax already validated text()
+       against it, so it is the user's data frame, never an output frame. */
     if !`q' di as txt "[4/5] littext: creating output frames..."
+    /* If the entry frame is itself one of the output frames (only possible
+       if the user's text() column name collided with an lt_relations
+       column and they were sitting in it), switching there would not let
+       us drop it. Fall back to default in that case. */
+    if inlist("`entry_frame'", "lt_constructs", "lt_relations", "lt_diag") {
+        local entry_frame "default"
+    }
+    frame change `entry_frame'
     capture frame drop lt_constructs
     capture frame drop lt_relations
     capture frame drop lt_diag
@@ -272,17 +309,19 @@ program define _littext_analyze, eclass
         frame lt_diag:       save "`saving'_diag.dta",       `replopt'
         if !`q' di as txt "littext: results also written to '`saving'_*.dta'"
     }
-    frame change lt_relations
+    frame change `entry_frame'
     if !`q' {
         di as txt ""
         di as txt "littext: analysis complete."
         di as txt "  Constructs extracted: `ncon'"
         di as txt "  Candidate relationships: `nrel'"
-        di as txt "  Active frame: lt_relations  (also available: lt_constructs, lt_diag)"
+        di as txt "  Results are in frames lt_constructs, lt_relations, lt_diag."
+        di as txt "  You remain in your data frame (`entry_frame')."
         di as txt ""
-        di as txt "Try:  list source target relation_type confidence in 1/10"
-        di as txt "      tab relation_type"
-        di as txt "      littext graph, type(map)"
+        di as txt "Try:  frame lt_relations: list source target relation_type confidence in 1/10"
+        di as txt "      frame lt_relations: tab relation_type"
+        di as txt `"      littext graph, type(map) outdir("...")"'
+        di as txt `"      littext export, outdir("...")"'
     }
     ereturn local cmd = "littext analyze"
     ereturn local unit = "`unit'"

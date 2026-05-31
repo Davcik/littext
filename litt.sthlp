@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.3.0  27may2026}{...}
+{* *! version 0.4.8  29may2026}{...}
 {title:Title}
 
 {phang}
@@ -17,10 +17,16 @@ are functionally identical.
 
 {p 8 16 2}
 {bf:littext graph} {cmd:,} [ {opt t:ype(string)} {opt top(#)}
-{opt out:dir(string)} {opt we:ighted} {opt lev:el(string)} {opt sav:ing(string)} {opt rep:lace} ]
+{opt out:dir(string)} {opt we:ighted} {opt lev:el(string)}
+{opt format(string)} {opt emb:ed(string)} {opt sav:ing(string)} {opt rep:lace} ]
 
 {p 8 16 2}
-{bf:littext example} [ {cmd:,} {opt n(#)} {opt gold} {opt clear} ]
+{bf:littext export} {cmd:,} {opt out:dir(string)} [ {opt n:ame(string)}
+{opt format(string)} {opt minc:onf(#)} {opt t:ype(string)} {opt top(#)}
+{opt col:umns(string)} ]
+
+{p 8 16 2}
+{bf:littext example} [ {cmd:,} {opt gold} {opt clear} ]
 
 {p 8 16 2}
 {bf:littext install} [ {cmd:,} {opt q:uiet} {opt v:erbose} ]
@@ -52,7 +58,10 @@ Results are returned in three Stata frames left in memory:
 {p 8 12 2}{bf:lt_diag}        -  one row per source document with diagnostics{p_end}
 
 {pstd}
-After {bf:littext analyze} returns, you are placed in frame {bf:lt_relations}.
+After {bf:littext analyze} returns, you remain in the frame you called it
+from; the results are in the named frames {bf:lt_constructs},
+{bf:lt_relations}, and {bf:lt_diag}, queried with a frame prefix, e.g.
+{cmd:frame lt_relations: list source target relation_type confidence}.
 Files on disk are produced only if you pass {opt sav:ing()}.
 
 {title:Options for {cmd:littext analyze}}
@@ -170,23 +179,85 @@ edge strength matters more than syntactic type.
 {opt lev:el(string)} - hierarchy specificity for construct-vocabulary graph
 types. Accepts {bf:leaf} (default; constructs at maximum specificity),
 {bf:root} (each construct replaced by its hierarchy root), or a
-non-negative integer N (collapse to depth N). Currently affects
-{bf:type(frequency)} only; other Stata-native types ignore {opt level()}
-because their x-axis is not construct-keyed. Matplotlib renderers ignore
-{opt level()} in v0.3.0 (a warning is emitted). The hierarchy is computed
-by the lexical right-substring rule plus the hyphenated-prefix rule
-described in the Notes section.
+non-negative integer N (collapse to depth N). Honoured by
+{bf:type(frequency)} and, since v0.4.5, by the matplotlib {bf:type(map)}
+and {bf:type(network)} renderers. In {bf:map} a rolled construct is drawn
+at the frequency-weighted centroid of its children. In {bf:network} edges
+are aggregated within each relation type but never across types: a
+positive and a negative edge between the same rolled pair stay distinct.
+Other Stata-native types, the heatmaps ({bf:cooccurrence}, {bf:roles}),
+and {bf:dendrogram} (whose tree is built from cluster distances, not the
+construct hierarchy) ignore {opt level()} and emit a one-line note. The
+hierarchy is computed by the lexical right-substring rule plus the
+hyphenated-prefix rule described in the Notes section.
 
 {phang}
 {opt out:dir(string)} - directory where figure files will be written.
-Accepts an absolute path (e.g. {bf:"D:\projects\figures"}). If omitted or
-given as a relative path, the current Stata working directory ({bf:c(pwd)})
-is used. The resolved absolute path is always printed.
+REQUIRED. Pass an absolute path (e.g. {bf:"D:\projects\figures"}). If
+omitted, {cmd:littext graph} stops with an error rather than guessing a
+location. A relative path is accepted but resolved against the current
+working directory ({bf:c(pwd)}) with a warning. The resolved absolute
+path is printed on every save.
 
 {phang}
 {opt sav:ing(string)} - output file stub for matplotlib figures (PNG and PDF
 are written). For Stata-native graphs, the file is saved as PNG via
 {cmd:graph export}.
+
+{phang}
+{opt format(string)} - output format for the matplotlib figure types
+({bf:map}, {bf:network}, {bf:dendrogram}, {bf:cooccurrence}, {bf:roles}).
+Accepts {bf:static} (default; PNG and PDF via matplotlib), {bf:html}
+(interactive Plotly HTML), or {bf:both}. Ignored with a note for
+Stata-native types, which are always static.
+
+{phang}
+{opt emb:ed(string)} - how plotly.js is embedded in {bf:format(html)}
+output. {bf:selfcontained} (default) writes a standalone file (~3.5 MB)
+that opens offline on any machine; {bf:cdn} writes a small file that
+loads plotly.js from a content-delivery network and therefore needs an
+internet connection to render.
+
+{title:Options for {cmd:littext export}}
+
+{pstd}
+{cmd:littext export} writes the candidate relationships from the most recent
+{cmd:littext analyze} (the {bf:lt_relations} frame) as a hypothesis register
+for hand-curation: a clean candidate table, sorted strongest-first, with no
+curation columns added (the analyst adds their own). Run {cmd:littext
+analyze} first.
+
+{phang}
+{opt out:dir(string)} - REQUIRED. Absolute path to the directory where the
+register is written. A relative path is resolved against {bf:c(pwd)} with a
+warning.
+
+{phang}
+{opt n:ame(string)} - file-name stub for the register (default
+{bf:littext_register}). The extension is added per {opt format()}.
+
+{phang}
+{opt format(string)} - output format: {bf:csv} (default), {bf:xlsx}, or
+{bf:both}. CSV is written with full quoting so evidence spans containing
+commas or quotes survive intact.
+
+{phang}
+{opt minc:onf(#)} - keep only candidates with {bf:confidence} at or above
+this value (default: keep all).
+
+{phang}
+{opt t:ype(string)} - restrict to one or more relation types, given as a
+space- or comma-separated list (e.g. {bf:type(pos_assoc neg_assoc)}).
+
+{phang}
+{opt top(#)} - keep only the top {bf:#} candidates after sorting by
+descending confidence (default: keep all).
+
+{phang}
+{opt col:umns(string)} - space-separated list of {bf:lt_relations} columns
+to export, overriding the default essentials-plus-provenance set
+({bf:source target relation_type confidence evidence_text extraction_method
+doc_id}). Unknown columns are skipped with a note.
 
 {title:Stata frames produced}
 
@@ -263,7 +334,7 @@ share no right substring).
 {it:employee-based brand equity}, the rule places each subtype as a
 depth-1 child of {it:brand equity}. Query the hierarchy with:
 
-{phang}{cmd:. frame lt_constructs: list canonical_form parent_canonical canonical_root is_root, sepby(canonical_root)}{p_end}
+{phang}{cmd:. frame lt_constructs: list canonical_form parent_canonical canonical_root, sepby(canonical_root)}{p_end}
 
 {pstd}
 or roll up at the graph level with:
@@ -272,19 +343,20 @@ or roll up at the graph level with:
 
 {title:Examples}
 
-{pstd}For fast development and smoke-testing (30 abstracts; runs in seconds):{p_end}
+{pstd}Load the bundled synthetic RBV corpus (300 abstracts) and analyse it:{p_end}
 
 {phang}{cmd:. littext example, clear}{p_end}
 {phang}{cmd:. littext analyze, text(abstract) id(article_id) year(year) journal(journal) texttype(abstract)}{p_end}
-
-{pstd}For the full demonstration corpus (200 abstracts):{p_end}
-
-{phang}{cmd:. littext example, n(200) clear}{p_end}
-{phang}{cmd:. littext analyze, text(abstract) id(article_id) year(year) journal(journal) texttype(abstract)}{p_end}
-{phang}{cmd:. list source target relation_type confidence in 1/10}{p_end}
-{phang}{cmd:. tab relation_type}{p_end}
-{phang}{cmd:. littext graph, type(map)}{p_end}
+{phang}{cmd:. frame lt_relations: list source target relation_type confidence in 1/10}{p_end}
+{phang}{cmd:. frame lt_relations: tab relation_type}{p_end}
+{phang}{cmd:. littext graph, type(map) outdir("D:/figs")}{p_end}
 {phang}{cmd:. littext graph, type(network) top(25)}{p_end}
+{phang}{cmd:. littext graph, type(network) level(root)}{p_end}
+{phang}{cmd:. littext graph, type(map) level(1)}{p_end}
+{phang}{cmd:. littext graph, type(network) outdir("D:/figs") format(html)}{p_end}
+{phang}{cmd:. littext graph, type(map) outdir("D:/figs") format(both)}{p_end}
+{phang}{cmd:. littext export, outdir("D:/register") format(both)}{p_end}
+{phang}{cmd:. littext export, outdir("D:/register") minconf(0.7) type(pos_assoc neg_assoc) top(200)}{p_end}
 {phang}{cmd:. littext graph, type(frequency) level(root)}{p_end}
 
 {pstd}For a corpus of interview transcripts:{p_end}
@@ -304,7 +376,7 @@ or roll up at the graph level with:
 
 {pstd}To inspect the ground-truth relationships embedded in a corpus:{p_end}
 
-{phang}{cmd:. littext example, n(30) gold clear}{p_end}
+{phang}{cmd:. littext example, gold clear}{p_end}
 {phang}{cmd:. list source target relation_type in 1/15}{p_end}
 
 {title:Sentiment analysis: a note}
@@ -336,7 +408,7 @@ Users should not treat {bf:text_polarity} as a measure of relationship sign.
 Stata 19 or higher with Python integration configured. Python 3.14
 recommended on Windows; spaCy on Python requires {bf:blis 1.3.3} or
 higher. Required Python packages: spacy, sentence-transformers, hdbscan,
-scikit-learn, umap-learn, matplotlib, networkx, pandas, numpy. The spaCy
+scikit-learn, umap-learn, matplotlib, networkx, plotly, pandas, numpy. The spaCy
 model {bf:en_core_web_sm} must be downloaded once via
 {cmd:python -m spacy download en_core_web_sm}.
 
@@ -421,7 +493,7 @@ Available at: {browse "https://github.com/Davcik/littext":https://github.com/Dav
 {browse "https://www.gnu.org/licenses/gpl-3.0.html":GNU General Public License version 3 or later} (GPL-3.0-or-later).
 You may redistribute and modify it under the terms of that license;
 modified versions and larger works that incorporate {cmd:littext}
-must also be released under GPL-3 or later. See the LICENCE file in
+must also be released under GPL-3 or later. See the LICENSE file in
 the repository root for the full license text.
 
 {pstd}

@@ -1,51 +1,55 @@
 /*!
-_littext_example: load a bundled synthetic corpus.
+_littext_example: load the bundled synthetic example corpus.
 
-The corpora are named by size:
-  littext_example30.dta         30 abstracts; fast smoke testing
-  littext_example200.dta        200 abstracts; full demonstration corpus
-  littext_example_gold30.dta    74 ground-truth relations for the n=30 corpus
-  littext_example_gold200.dta   477 ground-truth relations for the n=200 corpus
+littext ships a single synthetic corpus, themed on the resource-based
+view (RBV) of the firm:
+
+  littext_example.dta        300 abstracts (1994-2025), 18 synthetic
+                             journals, 17 RBV sub-territories
+  littext_example_gold.dta   1280 ground-truth relations across the
+                             five relation types pos_assoc, neg_assoc,
+                             moderates, mediates, assoc
 
 Syntax:
-  littext example                    /* defaults to n(30), the small corpus    */
-  littext example, n(30)             /* explicit small                          */
-  littext example, n(200)            /* full demonstration corpus               */
-  littext example, n(30) gold        /* ground-truth relations for n=30         */
-  littext example, n(200) gold       /* ground-truth relations for n=200        */
+  littext example                  /* load the 300-abstract corpus       */
+  littext example, clear           /* replace data in memory             */
+  littext example, gold            /* load the ground-truth relations    */
+  littext example, gold clear
 
-All corpora are synthetic. They embed known constructs and relationships
-drawn from real digital-marketing, branding, and business-ethics terminology,
-but they are NOT real publications and must not be cited as bibliometric data.
+The corpus is SYNTHETIC. It embeds known constructs and relationships
+drawn from RBV terminology, but the abstracts are not real publications
+and must not be cited as bibliometric data. Because it is generated from
+the same construct and dependency-pattern substrate the extractor
+targets, the gold file is suitable as a controlled regression anchor but
+NOT as a basis for reporting precision/recall as external validation.
 */
 
 program define _littext_example
     version 19.0
-    syntax [, N(integer 30) Gold Clear]
-    if !inlist(`n', 30, 200) {
-        di as err "littext example: n() must be 30 or 200 (got `n')"
-        exit 198
-    }
-    local cl = ("`clear'" != "")
+    syntax [, Gold Clear]
     local gd = ("`gold'" != "")
-    if `cl' clear
-    findfile "littext.ado"
-    local adopath = subinstr(`"`r(fn)'"', "littext.ado", "", .)
-    local datapath = `"`adopath'data"'
     if `gd' {
-        local fname "littext_example_gold`n'.dta"
-        if `n' == 30  local desc "ground-truth relationships for the n=30 corpus (74 rows)"
-        if `n' == 200 local desc "ground-truth relationships for the n=200 corpus (477 rows)"
+        local fname "littext_example_gold.dta"
+        local desc "ground-truth relations (1280 rows; pos_assoc, neg_assoc, moderates, mediates, assoc)"
     }
     else {
-        local fname "littext_example`n'.dta"
-        if `n' == 30  local desc "small synthetic corpus (n=30 abstracts; for fast iteration)"
-        if `n' == 200 local desc "full synthetic corpus (n=200 abstracts; demonstration)"
+        local fname "littext_example.dta"
+        local desc "synthetic RBV corpus (300 abstracts; demonstration only)"
     }
-    use `"`datapath'/`fname'"', `clear'
+    _littext_resolve, subdir(data) name(`"`fname'"')
+    /* Load into the default frame. A prior -littext analyze- leaves
+       lt_relations as the active frame; without this, -littext example-
+       would load the corpus into lt_relations (an output frame), and a
+       subsequent -analyze- would look for text() in the wrong frame. */
+    capture frame change default
+    use `"`r(path)'"', `clear'
     di as txt "littext: loaded `desc'."
-    if !`gd' {
-        di as txt "         Variables: article_id, year, journal, title, abstract"
-        di as txt "         This corpus is synthetic and not for substantive citation."
+    if `gd' {
+        di as txt "         Variables: article_id, source, target, relation_type, pattern, evidence"
+    }
+    else {
+        di as txt "         Variables: article_id, year, journal, title, authors, method, sub_territory, abstract"
+        di as txt "         Synthetic corpus; not for substantive citation. Analyze with, e.g.:"
+        di as txt "           littext analyze, text(abstract) id(article_id) year(year) journal(journal)"
     }
 end

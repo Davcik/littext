@@ -15,7 +15,7 @@ Types:
 
 Options:
   top(#)        for heatmaps, the top-k constructs (by frequency) included
-  outdir(path)  absolute path for output (default: c(pwd))
+  outdir(path)  absolute path for output (REQUIRED; no default)
   weighted      for type(network): colour edges by confidence rather than by
                 relation type (v0.2.7)
   saving(stub)  file stub (default: littext_<type>)
@@ -30,10 +30,11 @@ it at the end is robust to errors and does not modify the source frames.
 
 program define _littext_graph
     version 19.0
-    syntax , [Type(string) Top(integer 20) Saving(string) OUTdir(string) WEighted Replace NAme(string) LEVel(string)]
+    syntax , [Type(string) Top(integer 20) Saving(string) OUTdir(string) WEighted Replace NAme(string) LEVel(string) FORMat(string) EMBed(string)]
     if "`type'" == "" local type "map"
-    if !inlist("`type'", "frequency", "distribution", "trend", "confidence", "extraction") & ///
-       !inlist("`type'", "map", "network", "dendrogram", "cooccurrence", "roles") {
+    local ok_native = inlist("`type'", "frequency", "distribution", "trend", "confidence", "extraction")
+    local ok_mpl = inlist("`type'", "map", "network", "dendrogram", "cooccurrence", "roles")
+    if !`ok_native' & !`ok_mpl' {
         di as err "littext graph: type() must be one of:"
         di as err "  frequency, distribution, trend, confidence, extraction (Stata-native)"
         di as err "  map, network, dendrogram, cooccurrence, roles (matplotlib)"
@@ -58,47 +59,72 @@ program define _littext_graph
         di as err "littext: no analysis results found. Run -littext analyze- first."
         exit 198
     }
-    /* Resolve outdir(): default to current working directory if absent.
-       If the user passed a relative path, we keep it as given but warn,
-       because the user explicitly asked us to support absolute paths and
-       relative ones produce hard-to-predict locations on Windows. */
-    if "`outdir'" == "" {
-        local outdir = c(pwd)
+    /* Resolve outdir(). As of v0.4.6 outdir() is effectively required:
+       omitting it previously defaulted to c(pwd), which on Windows could
+       silently be Stata's own install directory. We now refuse rather
+       than guess, so output destinations are always explicit. A relative
+       path is still accepted but resolved against c(pwd) with a warning,
+       since the package contract is absolute paths. */
+    if `"`outdir'"' == "" {
+        di as err "littext graph: outdir() is required."
+        di as txt `"        Pass an absolute path, e.g. outdir("D:/myproject/figures"),"'
+        di as txt "        so the figure destination is explicit and predictable."
+        exit 198
     }
-    else {
-        local first2 = substr(`"`outdir'"', 2, 1)
-        local first1 = substr(`"`outdir'"', 1, 1)
-        local is_abs = (`"`first2'"' == ":") | (`"`first1'"' == "/")
-        if !`is_abs' {
-            di as txt `"littext: outdir() looks relative; resolving against current working directory ("`c(pwd)'")."'
-            local outdir `"`c(pwd)'/`outdir'"'
-        }
+    local first2 = substr(`"`outdir'"', 2, 1)
+    local first1 = substr(`"`outdir'"', 1, 1)
+    local is_abs = (`"`first2'"' == ":") | (`"`first1'"' == "/")
+    if !`is_abs' {
+        di as txt `"littext: WARNING -- outdir() looks relative; resolving against the current working directory ("`c(pwd)'")."'
+        local outdir `"`c(pwd)'/`outdir'"'
     }
     capture mkdir `"`outdir'"'
+    /* v0.4.7: resolve format() and embed() defaults and validate. */
+    if `"`format'"' == "" local format "static"
+    local format = lower(trim(`"`format'"'))
+    if !inlist("`format'", "static", "html", "both") {
+        di as err `"littext graph: format() must be static, html, or both (got "`format'")."'
+        exit 198
+    }
+    if `"`embed'"' == "" local embed "selfcontained"
+    local embed = lower(trim(`"`embed'"'))
+    if !inlist("`embed'", "selfcontained", "cdn") {
+        di as err `"littext graph: embed() must be selfcontained or cdn (got "`embed'")."'
+        exit 198
+    }
     /* Stata-native types */
     if inlist("`type'", "frequency", "distribution", "trend", "confidence", "extraction") {
+        if "`format'" != "static" {
+            di as txt "littext: NOTE -- format(`format') applies only to the matplotlib figure types"
+            di as txt "        (map, network, dendrogram, cooccurrence, roles). type(`type') is"
+            di as txt "        Stata-native and always produces a static graph; format() ignored."
+        }
         _littext_graph_stata, type(`type') top(`top') saving(`"`saving'"') outdir(`"`outdir'"') `replace' name(`"`name'"') level(`level')
         exit
     }
     /* matplotlib types: dispatch to draw_figure in littext_viz.py.
-       v0.3 note: level() is honoured only for the Stata-native types in
-       this release; matplotlib renderers are scheduled for v0.3.x. A
-       warning is emitted when level() is set with a matplotlib type. */
-    if "`level'" != "leaf" {
-        di as txt "littext: WARNING -- level(`level') is currently honoured only for Stata-native graph types."
-        di as txt "        The matplotlib renderer for type(`type') ignores level() in v0.3.0."
-    }
-    findfile "littext.ado"
-    local adopath = subinstr(`"`r(fn)'"', "littext.ado", "", .)
-    local pypath = `"`adopath'python"'
+       v0.4.5: level() is now carried into the map and network renderers
+       (leaf/root/integer). The heatmaps and the distance-based dendrogram
+       do not roll up; draw_figure emits a one-line note if a non-leaf
+       level is requested for them. */
+    _littext_resolve, subdir(python) name(littext_run.py)
+    local pypath `"`r(dir)'"'
     if "`saving'" == "" local saving "littext_`type'"
     local outstub `"`outdir'/`saving'"'
     local weighted_flag = ("`weighted'" != "")
     python: import sys
     python: sys.path.insert(0, r"`pypath'")
     python: from littext_viz import draw_figure
-    python: draw_figure(kind="`type'", top=`top', out_stub=r"`outstub'", weighted=bool(`weighted_flag'))
-    di as txt `"littext: figure saved to "`outstub'.png" and "`outstub'.pdf""'
+    python: draw_figure(kind="`type'", top=`top', out_stub=r"`outstub'", weighted=bool(`weighted_flag'), level="`level'", fmt="`format'", embed="`embed'")
+    if "`format'" == "static" {
+        di as txt `"littext: figure saved to "`outstub'.png" and "`outstub'.pdf""'
+    }
+    else if "`format'" == "html" {
+        di as txt `"littext: interactive figure saved to "`outstub'.html""'
+    }
+    else {
+        di as txt `"littext: figures saved to "`outstub'.png", "`outstub'.pdf", and "`outstub'.html""'
+    }
 end
 
 program define _littext_graph_stata

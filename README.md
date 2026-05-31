@@ -32,17 +32,27 @@ wheels on PyPI).
 
 Install the required Python packages into the environment Stata is bound to:
 
-    pip install spacy sentence-transformers hdbscan scikit-learn umap-learn matplotlib networkx pandas vaderSentiment
+    pip install spacy sentence-transformers hdbscan scikit-learn umap-learn matplotlib networkx plotly pandas numpy vaderSentiment
     python -m spacy download en_core_web_sm
+
+`vaderSentiment` is required only for the optional `addsentiment` option;
+the rest are mandatory.
 
 ### 2. Stata package
 
-Place the contents of this directory anywhere on the filesystem, then add it
-to Stata's adopath. For development:
+**Development / local use.** Place the package directory anywhere on the
+filesystem and add the directory that contains the `.ado` files to Stata's
+adopath:
 
-    adopath + "D:\YOUR_FOLDER\YOUR_FOLDER\littext"
+    adopath + "D:\path\to\littext\0.4"
 
-For end-user installation (post-SSC):
+**End-user installation from GitHub:**
+
+    net from "https://raw.githubusercontent.com/Davcik/littext/main/"
+    net describe littext
+    net install littext
+
+**End-user installation from SSC (after SSC submission):**
 
     ssc install littext
 
@@ -52,7 +62,7 @@ From Stata:
 
     littext install, verbose
 
-This will print the Python version, the executable path, and the status of each
+This prints the Python version, the executable path, and the status of each
 required package.
 
 ## Quick start
@@ -64,11 +74,6 @@ required package.
     littext graph, type(map)
     littext graph, type(network)
 
-To try the bundled synthetic corpus instead:
-
-    littext example, clear
-    littext analyze, text(abstract) id(article_id) year(year) journal(journal)
-
 ## Output
 
 Three Stata frames are left in memory after `littext analyze`:
@@ -79,9 +84,19 @@ Three Stata frames are left in memory after `littext analyze`:
 
 No files are written to disk unless you pass `saving(stub)`.
 
+To hand off the candidate relationships for manual curation, export them as a
+hypothesis register (sorted strongest-first, no curation columns added):
+
+    littext export, outdir("D:/register") format(both)
+    littext export, outdir("D:/register") minconf(0.7) type(pos_assoc neg_assoc) top(200)
+
+`format()` accepts `csv`, `xlsx`, or `both`. Filters (`minconf()`, `type()`,
+`top()`) make a large candidate set reviewable; `columns()` overrides the
+default essentials-plus-provenance column set.
+
 ## Visualisations
 
-Seven figure types are available via `littext graph, type(...)`:
+Ten figure types are available via `littext graph, type(...)`:
 
 | Type | Renderer | Output |
 |---|---|---|
@@ -89,47 +104,92 @@ Seven figure types are available via `littext graph, type(...)`:
 | `distribution`  | Stata-native | distribution of relation types |
 | `trend`         | Stata-native | extraction yield over years |
 | `confidence`    | Stata-native | histogram of confidence scores |
+| `extraction`    | Stata-native | distribution by extraction method |
 | `map`           | matplotlib   | UMAP concept map of constructs |
 | `network`       | matplotlib   | force-directed relationship network |
 | `dendrogram`    | matplotlib   | hierarchical construct clustering |
+| `cooccurrence`  | matplotlib   | pairwise NPMI heatmap of top-k constructs |
+| `roles`         | matplotlib   | construct x relation-type heatmap |
+
+The five matplotlib types also render as interactive Plotly HTML via
+`format(html)` (or `format(both)` for static + interactive). Interactive
+figures support hover, zoom, and pan, and by default are self-contained
+(open offline in any browser); pass `embed(cdn)` for small CDN-linked
+files. Example: `littext graph, type(network) outdir("D:/figs") format(html)`.
 
 ## File layout
 
     littext/
     ├── littext.ado                Master dispatcher
+    ├── litt.ado                   Short-form alias
     ├── littext.sthlp              Help file
-    ├── _littext_install.ado       Environment check
-    ├── _littext_analyze.ado       Main analysis
-    ├── _littext_graph.ado         Visualization dispatcher
+    ├── litt.sthlp                 Alias help (copy of littext.sthlp)
+    ├── _littext_install.ado       Python-environment check / installer
+    ├── _littext_analyze.ado       Main analysis driver
+    ├── _littext_graph.ado         Visualisation dispatcher
+    ├── _littext_export.ado        Hypothesis-register export
     ├── _littext_example.ado       Example-data loader
-    ├── python/                    Python pipeline
+    ├── littext.pkg                net install manifest
+    ├── stata.toc                  net install table of contents
+    ├── LICENSE                    GPL-3.0-or-later
+    ├── README.md
+    ├── CHANGELOG.md
+    ├── CITATION.cff
+    ├── python/                    Python pipeline (force-installed)
     │   ├── __init__.py
-    │   ├── littext_env.py
-    │   ├── littext_pipeline.py
-    │   ├── littext_extract.py
-    │   ├── littext_embed.py
-    │   ├── littext_cluster.py
-    │   ├── littext_relate.py
-    │   ├── littext_io.py
-    │   ├── littext_state.py
-    │   └── littext_viz.py
-    ├── data/
-    │   ├── make_example.py        Synthetic-corpus generator
-    │   ├── littext_example.dta    Synthetic abstracts (n = 200)
-    │   └── littext_example_gold.dta  Ground-truth relations (n = 477)
-    ├── tests/
-    │   └── littext_smoke.do       End-to-end smoke test
-    └── README.md
+    │   ├── littext_env.py         Environment helpers (inferred from name)
+    │   ├── littext_run.py         Pipeline entry point (inferred from name)
+    │   ├── littext_pipeline.py    Orchestration
+    │   ├── littext_extract.py     spaCy noun-chunk construct extraction
+    │   ├── littext_embed.py       Sentence-transformer embeddings
+    │   ├── littext_cluster.py     HDBSCAN synonym clustering
+    │   ├── littext_hierarchy.py   Construct-hierarchy detection
+    │   ├── littext_cleaners.py    texttype() cleaning regimes
+    │   ├── littext_relate.py      Co-occurrence + dependency-pattern relations
+    │   ├── littext_io.py          Stata-frame I/O
+    │   ├── littext_state.py       Run-state helpers (inferred from name)
+    │   └── littext_viz.py         matplotlib figures
+    ├── data/                      Synthetic corpus
+    │   ├── littext_example.dta         300 abstracts (loaded by littext example)
+    │   ├── littext_example_gold.dta    1280 ground-truth relations
+    │   ├── littext_rbv_synth_v01_abstracts.csv
+    │   ├── littext_rbv_synth_v01_gold.csv
+    │   ├── littext_rbv_synth_v01.xlsx
+    │   └── littext_rbv_synth_v01_README.md
+    └── tests/                     Developer regression suite (not installed)
+        ├── test_cleaners.py            pure-Python unit tests
+        ├── test_hierarchy.py
+        ├── test_load_corpus_drop.py
+        ├── littext_smoke.do            end-to-end pipeline regression test (Stata)
+        ├── littext_eval.do             relation-extraction eval harness (Stata)
+        ├── claude_eval_relations.py    P/R/F1 scorer with regression floor (Python)
+        ├── test_eval_relations.py      unit tests for the scorer (Python)
+        └── test_viz_format.py          unit tests for format() helpers (Python)
 
 ## Synthetic corpus
 
-`data/littext_example.dta` contains 200 synthetic abstracts spanning 2005-2025,
-six synthetic journals, and three substantive domains (digital marketing,
-branding, business ethics). The abstracts embed 477 ground-truth relationships
-balanced across the five directional relation types (pos_assoc, neg_assoc,
-moderates, mediates, causes). The corpus is **synthetic** and must not be
-cited as a real bibliometric resource. Its purpose is end-to-end testing,
-example illustration in the help file, and SSC submission demonstration.
+The `data/` directory contains a synthetic corpus themed on the
+resource-based view of the firm: 300 abstracts and their ground-truth
+relationships, supplied as CSV and XLSX (see
+`data/littext_rbv_synth_v01_README.md` for the schema and provenance). The
+corpus is **synthetic** and must not be cited as a real bibliometric
+resource; its purpose is end-to-end testing, example illustration, and
+submission demonstration. Because it is generated from the same construct
+and dependency-pattern substrate the extractor targets, it is suitable as
+a controlled testbed and regression anchor but **not** as a basis for
+reporting precision/recall as external validation.
+
+The bundled example is wired to `littext_example.dta` (300 abstracts) and
+`littext_example_gold.dta` (1280 relations), both built from the CSVs by
+`claude_make_example_dta.py`. Load and analyse it with:
+
+    littext example, clear
+    littext analyze, text(abstract) id(article_id) year(year) journal(journal)
+    littext example, gold clear    // inspect the ground-truth relations
+
+The five relation types present in the gold are `pos_assoc`, `neg_assoc`,
+`moderates`, `mediates`, and `assoc`. (The extractor can additionally emit
+`causes`; the synthetic gold simply contains no causal items.)
 
 ## Methodological notes
 
@@ -150,7 +210,7 @@ different constructs; do not treat the second as a measure of the first.
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release history. The current
-release is **v0.2.9**; the v0.1.x series ran from v0.1.0 through v0.1.3.
+release is **v0.4.8**.
 
 ---
 

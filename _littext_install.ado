@@ -21,16 +21,15 @@ program define _littext_install
         di as txt `"Run -python set exec "C:\path\to\python.exe"- (use your actual path)."'
         exit 198
     }
-    findfile "littext.ado"
-    local adopath = subinstr(`"`r(fn)'"', "littext.ado", "", .)
-    local pypath = `"`adopath'python"'
+    _littext_resolve, subdir(python) name(littext_run.py)
+    local pypath `"`r(dir)'"'
     python: import sys, os
     python: _pypath_abs = os.path.abspath(r"`pypath'")
     python: sys.path.insert(0, _pypath_abs) if _pypath_abs not in sys.path else None
     capture python: from littext_env import check_environment, report_environment
     if _rc {
         di as err `"littext: cannot import littext_env from `pypath'"'
-        di as txt "Check that the python/ subfolder is present in the package directory."
+        di as txt "The littext Python modules could not be imported; reinstall the package."
         exit 198
     }
     /* Only run the (slow, importing) verbose report when the user asks for it. */

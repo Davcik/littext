@@ -4,10 +4,29 @@
 *
 *     net install littext
 *
-* Every f line below declares one file that net install will copy into
-* the user's PLUS adopath. Comment lines begin with an asterisk at
-* column 1; no other comment syntax is recognised by the manifest
-* grammar.
+* Comment lines begin with an asterisk in column 1; no other comment
+* syntax is recognised by the manifest grammar.
+*
+* File-declaration directives:
+*
+*   f <path>   Declares a file. Stata decides its fate by suffix:
+*              .ado and .sthlp are INSTALLED into the adopath; every
+*              other suffix is treated as an ANCILLARY file, which a
+*              plain "net install" / "ssc install" does NOT install --
+*              it is copied to the user's working directory only on an
+*              explicit "net get" or "ssc install ..., all".
+*
+*   F <path>   FORCE-installs the file into the adopath regardless of
+*              suffix, so that findfile can locate it at run time no
+*              matter the user's current working directory.
+*
+* The Python pipeline modules are therefore declared with F: the .ado
+* layer imports them at run time and must be able to find them after a
+* default install. The "python/" path component is the FETCH path
+* relative to the net-from location; it is NOT reproduced as a
+* subdirectory of the adopath on install. The .ado layer must locate
+* each module with findfile rather than by constructing a "python/"
+* path of its own.
 *
 v 3
 d littext: automated construct discovery and relationship inference from academic text
@@ -27,7 +46,7 @@ d six-pattern dependency-arc matcher for relationship valence.
 d
 d Requires Stata 19 with Python integration configured. Required
 d Python packages: spacy, sentence-transformers, hdbscan, scikit-learn,
-d umap-learn, matplotlib, networkx, pandas, numpy. Optional package
+d umap-learn, matplotlib, networkx, plotly, pandas, numpy. Optional package
 d for the addsentiment option: vaderSentiment. Run {stata littext
 d install, verbose} after installation to check the Python
 d environment.
@@ -36,10 +55,11 @@ d Author: Nebojsa S. Davcik, EM Normandie Business School
 d Support: davcik@live.com
 d ORCID: 0000-0003-1041-8788
 d
-d Distribution-Date: 20260525
+d Distribution-Date: 20260529
 d
 * ----------------------------------------------------------------------
 * Top-level Stata files: dispatchers, subcommand handlers, help, alias.
+* Installed by suffix (.ado, .sthlp), so lowercase f is correct here.
 * ----------------------------------------------------------------------
 f littext.ado
 f littext.sthlp
@@ -49,27 +69,62 @@ f _littext_install.ado
 f _littext_analyze.ado
 f _littext_graph.ado
 f _littext_example.ado
+f _littext_export.ado
+f _littext_resolve.ado
 *
 * ----------------------------------------------------------------------
-* Python pipeline. Filenames are case-sensitive; preserve forward
-* slashes in the path so net install creates the python/ subdirectory
-* correctly on all platforms.
+* Python pipeline. Force-installed (F) so a default net install places
+* them on the adopath where findfile can locate them. Filenames are
+* case-sensitive. littext_cleaners.py (v0.3.3) and littext_hierarchy.py
+* (v0.3.2) were absent from the pre-0.4.1 manifest and would not have
+* been installed.
 * ----------------------------------------------------------------------
-f python/__init__.py
-f python/littext_env.py
-f python/littext_pipeline.py
-f python/littext_extract.py
-f python/littext_embed.py
-f python/littext_cluster.py
-f python/littext_relate.py
-f python/littext_io.py
-f python/littext_state.py
-f python/littext_viz.py
-f python/littext_run.py
+F python/__init__.py
+F python/littext_env.py
+F python/littext_run.py
+F python/littext_pipeline.py
+F python/littext_extract.py
+F python/littext_embed.py
+F python/littext_cluster.py
+F python/littext_relate.py
+F python/littext_cleaners.py
+F python/littext_hierarchy.py
+F python/littext_io.py
+F python/littext_state.py
+F python/littext_viz.py
 *
 * ----------------------------------------------------------------------
-* Documentation files installed alongside the package.
+* Licence. Force-installed so the GPL text accompanies the code on a
+* default install (GPL conveyance best practice).
+* ----------------------------------------------------------------------
+F LICENSE
+*
+* ----------------------------------------------------------------------
+* Documentation. Ancillary (f): fetched on "net get" / "ssc install,
+* all". The authoritative copies live in the GitHub repository.
 * ----------------------------------------------------------------------
 f README.md
 f CHANGELOG.md
 f CITATION.cff
+*
+* ----------------------------------------------------------------------
+* Example data. The two .dta files are force-installed (F) so
+* _littext_example.ado can findfile them at run time after a flattened
+* install, exactly like the Python modules. The CSV / XLSX mirrors and
+* the corpus README are ancillary (f): human-facing provenance, never
+* read by the package.
+* ----------------------------------------------------------------------
+F data/littext_example.dta
+F data/littext_example_gold.dta
+f data/littext_rbv_synth_v01_abstracts.csv
+f data/littext_rbv_synth_v01_gold.csv
+f data/littext_rbv_synth_v01.xlsx
+f data/littext_rbv_synth_v01_README.md
+*
+* ----------------------------------------------------------------------
+* NOT shipped via this manifest:
+*   python/__pycache__/*.pyc   Build artifacts; never distribute. Add
+*                              __pycache__/ to .gitignore.
+*   tests/*.py                 Developer regression suite; lives in the
+*                              repository, not the installed footprint.
+* ----------------------------------------------------------------------
