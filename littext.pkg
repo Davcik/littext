@@ -92,7 +92,7 @@ F python/littext_state.py
 F python/littext_viz.py
 *
 * ----------------------------------------------------------------------
-* Licence. Force-installed so the GPL text accompanies the code on a
+* License. Force-installed so the GPL text accompanies the code on a
 * default install (GPL conveyance best practice).
 * ----------------------------------------------------------------------
 F LICENSE
@@ -108,13 +108,10 @@ f CITATION.cff
 * ----------------------------------------------------------------------
 * Example data. The corpus .dta is force-installed (F) so
 * _littext_example.ado can findfile it at run time after a flattened
-* install, exactly like the Python modules. The CSV / XLSX mirrors and
-* the corpus README are ancillary (f): human-facing provenance, never
-* read by the package.
+* install, exactly like the Python modules. The corpus README is
+* ancillary (f): human-facing provenance, never read by the package.
 * ----------------------------------------------------------------------
 F data/littext_example.dta
-f data/littext_rbv_synth_v01_abstracts.csv
-f data/littext_rbv_synth_v01.xlsx
 f data/littext_rbv_synth_v01_README.md
 *
 * ----------------------------------------------------------------------
