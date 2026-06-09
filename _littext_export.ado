@@ -11,7 +11,7 @@
     Part of the littext package. GPL-3.0-or-later; see LICENSE.
 */
 
-*! version 0.4.8  29may2026
+*! version 1.0  15june2026
 
 program define _littext_export, rclass
     version 19.0
