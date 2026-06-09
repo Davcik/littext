@@ -12,12 +12,12 @@
 *     net install littext
 *
 * If the package files live in a versioned subdirectory of the repository
-* (for example "0.4/"), point net from at that subdirectory instead.
+* (for example "1.0/"), point net from at that subdirectory instead.
 *
 v 3
 d littext: automated construct discovery and relationship inference from academic text
 d
-d Distribution-Date: 20260529
+d Distribution-Date: 20260615
 d Author: Nebojsa S. Davcik, EM Normandie Business School
 d Support: davcik@live.com
 d
