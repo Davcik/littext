@@ -17,10 +17,6 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-# matplotlib is imported lazily inside the draw functions because importing it
-# at module-load time slows down -littext analyze- unnecessarily.
-
-
 def _save_both(fig, out_stub: str) -> None:
     fig.savefig(out_stub + ".png", dpi=300, bbox_inches="tight")
     fig.savefig(out_stub + ".pdf", bbox_inches="tight")
@@ -62,11 +58,7 @@ def _build_level_map(constructs_df: pd.DataFrame, level: str):
       - level "root"  -> canonical_root (precomputed topmost ancestor)
       - level "<int>" -> ancestor at hierarchy_depth N; a construct at
                          depth d > N is replaced by walking parent_canonical
-                         (d - N) steps; constructs at depth <= N are kept.
-
-    Degrades gracefully (identity map, applied=False, explanatory note) if
-    the required hierarchy columns are absent from the cached frame, which
-    can happen if assign_hierarchy did not run before the state was cached.
+                         (d - N) steps; constructs at depth <= N are kept.    
     """
     lvl = (level or "leaf").strip().lower()
     if lvl == "leaf":
@@ -126,21 +118,7 @@ def _build_level_map(constructs_df: pd.DataFrame, level: str):
 def draw_figure(kind: str, top: int = 20, out_stub: str = "littext_figure",
                 weighted: bool = False, level: str = "leaf",
                 fmt: str = "static", embed: str = "selfcontained") -> None:
-    """Dispatch to the requested figure type using cached pipeline state.
-
-    v0.2.7: new kinds `cooccurrence` and `roles` are heatmaps; the
-    `weighted` flag enables continuous-confidence edge colouring in
-    `network`.
-
-    v0.4.5: `level` carries the construct-hierarchy roll-up into the
-    `map` and `network` renderers (leaf / root / integer depth). The
-    heatmaps and the distance-based dendrogram do not roll up; a note is
-    emitted if a non-leaf level is requested for them.
-
-    v0.4.7: `fmt` selects the output format -- 'static' (matplotlib PNG +
-    PDF, default), 'html' (Plotly interactive HTML), or 'both'. `embed`
-    controls how plotly.js is included in the HTML ('selfcontained' or
-    'cdn'). All five figure types support all three formats.
+    """Dispatch to the requested figure type using cached pipeline state.   
     """
     from littext_state import load_state
     state = load_state()
@@ -185,11 +163,7 @@ def _draw_concept_map(constructs_df: pd.DataFrame, embeddings: np.ndarray, top: 
     import warnings
     import matplotlib
     matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    # UMAP issues a UserWarning when random_state is set, advising that
-    # parallelism is disabled for reproducibility. We set random_state
-    # deliberately for that reason; the warning is therefore expected and
-    # adds noise to Stata's results window.
+    import matplotlib.pyplot as plt    
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning, module="umap")
         import umap
@@ -213,12 +187,7 @@ def _draw_concept_map(constructs_df: pd.DataFrame, embeddings: np.ndarray, top: 
     cf = constructs_df.copy().reset_index(drop=True)
     cf["x"] = coords[:, 0]
     cf["y"] = coords[:, 1]
-
-    # v0.4.5: hierarchy roll-up. Leaf level keeps the original per-construct
-    # scatter. For root/integer levels, each rolled group is plotted as ONE
-    # point at the frequency-weighted centroid of its children's UMAP
-    # coordinates (a centroid, not a re-embedding -- the parent is placed
-    # among its children rather than re-projected), sized by summed freq_doc.
+    
     rollup_map, applied, note = _build_level_map(constructs_df, level)
     if note:
         print("littext: " + note, flush=True)
@@ -239,7 +208,7 @@ def _draw_concept_map(constructs_df: pd.DataFrame, embeddings: np.ndarray, top: 
     else:
         plot_df = cf
 
-    # Group key for colouring: cluster_id at leaf, rolled label otherwise.
+    # Group key for coloring: cluster_id at leaf, rolled label otherwise.
     if "cluster_id" in plot_df.columns and not (applied and rollup_map):
         group_key = plot_df["cluster_id"].astype(str).tolist()
     else:
@@ -286,21 +255,6 @@ def _draw_network(constructs_df: pd.DataFrame, relations_df: pd.DataFrame, top: 
                   out_stub: str, weighted: bool = False, level: str = "leaf",
                   fmt: str = "static", embed: str = "selfcontained") -> None:
     """Force-directed network of candidate relationships.
-
-    v0.2.7: when `weighted=True`, edges are coloured continuously by
-    confidence using a viridis colourmap rather than by relation type.
-    This is option D in the v0.2.7 design discussion - useful when the
-    user cares about the strength of relationships more than their
-    syntactic type.
-
-    v0.4.5: `level` rolls construct endpoints up to a hierarchy ancestor
-    before the graph is built. Edges are then aggregated by (rolled
-    source, rolled target, relation_type): parallel edges of the SAME type
-    between a rolled pair are merged (confidence summed), but edges are
-    NEVER merged across relation types -- a pos_assoc and a neg_assoc
-    between the same rolled pair remain two distinct edges, fanned apart
-    so both are visible. Self-loops created by collapsing a child onto its
-    own ancestor are dropped.
     """
     import matplotlib
     matplotlib.use("Agg")
@@ -323,8 +277,7 @@ def _draw_network(constructs_df: pd.DataFrame, relations_df: pd.DataFrame, top: 
         "causes":    "#b35806",
         "assoc":     "#888888",
     }
-
-    # v0.4.5: roll endpoints up to the requested level (identity at leaf).
+    
     rollup_map, applied, note = _build_level_map(constructs_df, level)
     if note:
         print("littext: " + note, flush=True)
@@ -340,7 +293,7 @@ def _draw_network(constructs_df: pd.DataFrame, relations_df: pd.DataFrame, top: 
     )
 
     # Aggregate edges by (rolled_source, rolled_target, relation_type).
-    # summed confidence within a type; never merged across types.
+   
     agg = {}
     for _, r in rels.iterrows():
         rs = _roll(r["source"])
@@ -423,8 +376,8 @@ def _draw_network(constructs_df: pd.DataFrame, relations_df: pd.DataFrame, top: 
         cbar.set_label("Edge confidence (summed within type)")
         title_suffix = " (edges by confidence)"
     else:
-        # Edges by relation-type colour. Each type drawn as its own layer,
-        # fanned by a small per-type curvature so parallel edges of
+        # Edges by relation-type color. Each type is drawn as its own layer,
+        # fanned by a small per-type curvature, so parallel edges of
         # different types between a pair stay visually distinct.
         type_order = {t: i for i, t in enumerate(color_map)}
         for rtype, color in color_map.items():
@@ -502,18 +455,7 @@ def _draw_dendrogram(constructs_df: pd.DataFrame, embeddings: np.ndarray, top: i
 def _draw_cooccurrence(constructs_df: pd.DataFrame, relations_df: pd.DataFrame,
                        top: int, out_stub: str, fmt: str = "static",
                        embed: str = "selfcontained") -> None:
-    """v0.2.7 (option A): pairwise NPMI heatmap of top-k constructs.
-
-    Rows and columns are the top-k canonical constructs (by document
-    frequency, summed within cluster). Cell colour encodes the
-    relationship confidence between each pair, derived from the
-    relations frame. Diagonal cells are masked.
-
-    This is the standard text-mining co-occurrence heatmap, useful for
-    exploratory landscape inspection. It complements the network graph:
-    the network shows discrete edges between high-confidence pairs;
-    the heatmap shows the full pairwise landscape including weak
-    relationships.
+    """pairwise NPMI heatmap of top-k constructs.
     """
     import matplotlib
     matplotlib.use("Agg")
@@ -597,16 +539,7 @@ def _draw_cooccurrence(constructs_df: pd.DataFrame, relations_df: pd.DataFrame,
 def _draw_roles(constructs_df: pd.DataFrame, relations_df: pd.DataFrame,
                 top: int, out_stub: str, fmt: str = "static",
                 embed: str = "selfcontained") -> None:
-    """v0.2.7 (option B): construct x relation-type heatmap.
-
-    Rows are top-k canonical constructs, columns are the six relation
-    types (pos_assoc, neg_assoc, moderates, mediates, causes, assoc).
-    Cell values are counts of how many times each construct participated
-    in each relation type (in either source or target role).
-
-    Substantively informative: surfaces the syntactic ROLE each construct
-    tends to play in the corpus, distinguishing e.g. constructs that are
-    mostly mediators from those that are mostly outcomes.
+    """construct x relation-type heatmap.
     """
     import matplotlib
     matplotlib.use("Agg")
@@ -689,9 +622,7 @@ def _draw_roles(constructs_df: pd.DataFrame, relations_df: pd.DataFrame,
 
 
 # ======================================================================
-# v0.4.7: Plotly interactive (HTML) builders. Each takes the SAME data
-# the matplotlib renderer computed and produces an interactive figure.
-# matplotlib remains the static/publication engine; these are additive.
+# Plotly interactive (HTML) builders. 
 # Plotly is imported lazily so -littext analyze- and static-only figures
 # never pay the import cost.
 # ======================================================================

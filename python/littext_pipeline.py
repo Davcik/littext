@@ -2,12 +2,6 @@
 
 This module wires together extraction, embedding, clustering, relation
 candidacy, and writing back into Stata frames via the sfi interface.
-
-Pre-extraction text cleanup (v0.1.1):
-The pipeline strips publisher boilerplate (Emerald structured-abstract section
-headers, copyright trailers from major academic publishers) before any
-construct extraction. This is done in _load_corpus so the cleaning is applied
-uniformly regardless of how the corpus reached the pipeline.
 """
 
 from __future__ import annotations
@@ -30,11 +24,6 @@ from littext_state import save_state
 # Emerald-style structured-abstract section headers. These prefix substantive
 # sentences but should be removed before parsing so the parser does not treat
 # "Findings" as a noun chunk or as the subject of the following clause.
-# Note: the v0.2.9 _EMERALD_SECTIONS and _COPYRIGHT_TAIL regexes have
-# moved to littext_cleaners.py as part of the v0.3 Tier-2 refactor.
-# The _clean_text() function below remains for backward compatibility
-# but delegates to littext_cleaners._clean_abstract().
-
 
 def _clean_text(s: str) -> str:
     """Deprecated since v0.3.0. Use littext_cleaners.clean_for_texttype
@@ -119,8 +108,7 @@ def _load_corpus(corpus_path: str,
                 "mintextlen() may be set too high for this text kind."
             )
 
-    # v0.3 Tier-2: post-clean length sanity check. Compute the median
-    # character length of the kept rows and warn if it falls outside the
+    # Compute the median character length of the kept rows and warn if it falls outside the
     # expected window for the declared texttype.
     warn_below, warn_above = get_texttype_length_window(texttype)
     if warn_below is not None or warn_above is not None:
@@ -158,9 +146,7 @@ def run_pipeline(
 
     See module docstring for parameter semantics. The Stata-side
     _littext_analyze.ado performs the principal row-drop pass before
-    marshalling; min_text_len and keep_empty here govern the defensive
-    post-cleanup pass in _load_corpus. texttype selects the cleaning
-    regime (default: 'abstract', preserving v0.2.9 behaviour).
+    marshalling.
     """
     import sys as _sys
     import time as _time
@@ -203,10 +189,6 @@ def run_pipeline(
     n_canon = constructs_df["canonical_form"].nunique()
     log(f"    -> {n_canon} canonical clusters  ({_time.time()-t4:.1f}s)")
 
-    # v0.3: lexical-hierarchy detector. Adds parent_canonical,
-    # canonical_root, hierarchy_depth, is_root columns to
-    # constructs_df. Independent of synonym clustering -- this is a
-    # second pass over canonical forms.
     t4b = _time.time()
     log("(e2) detecting lexical construct hierarchy...")
     constructs_df = assign_hierarchy(constructs_df)

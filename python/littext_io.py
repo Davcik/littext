@@ -1,10 +1,4 @@
 """littext_io: write pandas DataFrames into Stata frames via the sfi module.
-
-Stata's sfi.Frame is the bidirectional bridge between Python and Stata. We
-populate three frames: lt_constructs, lt_relations, lt_diag.
-
-Stata frames must already exist (the .ado wrapper creates them); we just need
-to add variables and observations.
 """
 
 from __future__ import annotations

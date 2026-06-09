@@ -20,12 +20,6 @@ Options:
                 relation type (v0.2.7)
   saving(stub)  file stub (default: littext_<type>)
   replace       overwrite existing files
-
-The Stata-native graphs use a copy-to-temp-frame idiom rather than preserve/
-restore inside frame blocks. The latter is fragile: when graph hbar (or any
-later command) errors, the restore never runs and subsequent commands see
-corrupted frame state. Copying to a uniquely-named temp frame and dropping
-it at the end is robust to errors and does not modify the source frames.
 */
 
 program define _littext_graph
@@ -40,8 +34,7 @@ program define _littext_graph
         di as err "  map, network, dendrogram, cooccurrence, roles (matplotlib)"
         exit 198
     }
-    /* v0.3: validate level(). Accepts leaf, root, or a non-negative
-       integer. Defaults to leaf. */
+    
     if "`level'" == "" local level "leaf"
     if !inlist("`level'", "leaf", "root") {
         capture confirm integer number `level'
@@ -59,12 +52,7 @@ program define _littext_graph
         di as err "littext: no analysis results found. Run -littext analyze- first."
         exit 198
     }
-    /* Resolve outdir(). As of v0.4.6 outdir() is effectively required:
-       omitting it previously defaulted to c(pwd), which on Windows could
-       silently be Stata's own install directory. We now refuse rather
-       than guess, so output destinations are always explicit. A relative
-       path is still accepted but resolved against c(pwd) with a warning,
-       since the package contract is absolute paths. */
+    
     if `"`outdir'"' == "" {
         di as err "littext graph: outdir() is required."
         di as txt `"        Pass an absolute path, e.g. outdir("D:/myproject/figures"),"'
@@ -79,7 +67,7 @@ program define _littext_graph
         local outdir `"`c(pwd)'/`outdir'"'
     }
     capture mkdir `"`outdir'"'
-    /* v0.4.7: resolve format() and embed() defaults and validate. */
+    
     if `"`format'"' == "" local format "static"
     local format = lower(trim(`"`format'"'))
     if !inlist("`format'", "static", "html", "both") {
@@ -102,11 +90,7 @@ program define _littext_graph
         _littext_graph_stata, type(`type') top(`top') saving(`"`saving'"') outdir(`"`outdir'"') `replace' name(`"`name'"') level(`level')
         exit
     }
-    /* matplotlib types: dispatch to draw_figure in littext_viz.py.
-       v0.4.5: level() is now carried into the map and network renderers
-       (leaf/root/integer). The heatmaps and the distance-based dendrogram
-       do not roll up; draw_figure emits a one-line note if a non-leaf
-       level is requested for them. */
+    /* matplotlib types: dispatch to draw_figure in littext_viz.py. */
     _littext_resolve, subdir(python) name(littext_run.py)
     local pypath `"`r(dir)'"'
     if "`saving'" == "" local saving "littext_`type'"
@@ -137,13 +121,11 @@ program define _littext_graph_stata
     else local replopt ""
     frame pwf
     local origfrm = r(currentframe)
-    /* v0.3: level() applies meaningfully only to graph types whose
-       x-axis is the construct vocabulary. For other types we warn and
-       proceed at the leaf level. */
+    
     if "`level'" != "leaf" & !inlist("`type'", "frequency") {
         di as txt "littext: NOTE -- level(`level') has no effect on type(`type'); proceeding at leaf level."
     }
-    /* Each graph type works on a uniquely-named copy of the source frame. */
+    
     if "`type'" == "frequency" {
         capture frame drop _lt_g_freq
         frame copy lt_constructs _lt_g_freq
@@ -173,9 +155,6 @@ program define _littext_graph_stata
         frame drop _lt_g_dist
     }
     else if "`type'" == "extraction" {
-        /* v0.2.7: distribution of relations across extraction methods.
-           Useful for inspecting which patterns (cooccur+dep:A through F)
-           drove the directional rows, versus the cooccur fallback. */
         capture frame drop _lt_g_extr
         frame copy lt_relations _lt_g_extr
         frame change _lt_g_extr
@@ -223,18 +202,6 @@ program define _littext_graph_stata
 end
 
 
-/*
-v0.3 helper: remap canonical_form in the current frame to its ancestor
-at the requested hierarchy level. Operates in place on the current
-frame.
-
-For level("root") the helper uses the precomputed canonical_root column
-that the v0.3 pipeline writes into lt_constructs. For an integer level
-N, the helper walks the parent_canonical chain N steps; this case is
-rarer and slower. If the hierarchy columns are absent (frame predates
-v0.3 or assign_hierarchy was not called), the helper emits a one-line
-note and is a no-op.
-*/
 program define _lt_remap_canonical
     version 19.0
     syntax , LEVel(string)
@@ -273,8 +240,7 @@ program define _lt_remap_canonical
         qui save `"`lookup'"', replace
         restore
     }
-    /* Iteratively walk up. Each iteration reduces hierarchy_depth by
-       one for the rows that needed to be walked. */
+    
     qui summarize hierarchy_depth, meanonly
     local max_iter = max(`r(max)' - `target_depth', 1)
     local iter = 0

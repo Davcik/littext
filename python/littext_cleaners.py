@@ -1,19 +1,8 @@
-"""littext_cleaners: per-texttype text-cleaning regimes for v0.3 Tier-2.
+"""littext_cleaners: per-texttype text-cleaning regimes.
 
-Each regime is a function `_clean_<texttype>(s: str) -> str` that takes
-one document's raw text and returns the cleaned text. Cleaners are
-idempotent (re-running produces the same result) and safe on text that
-does not contain the patterns they target (return input unchanged).
-
-The dispatcher `clean_for_texttype(s, texttype)` selects the appropriate
-regime by texttype name. The module exposes the texttype taxonomy as
-`TEXTTYPE_NAMES` for validation use elsewhere.
-
-Per the v0.3 Tier-2 design note:
+Design note:
 
   abstract    Emerald section headers; copyright tails; arXiv tags.
-              (This is the v0.2.9 _clean_text behaviour preserved
-              under the new name.)
   fulltext    All of the above; LaTeX residues; reference-section
               detection; figure/table captions.
   transcript  Speaker labels (SPEAKER:, Q:, A:, all-caps name colon);
@@ -26,10 +15,7 @@ Per the v0.3 Tier-2 design note:
               removal only.
 
 The cleaners are deliberately conservative: each pattern is anchored
-or bounded so it cannot accidentally consume legitimate text. The
-fulltext reference-section detector is the only heuristic that can
-remove a large span; it requires the "References" or "Bibliography"
-header to appear on its own line.
+or bounded so it cannot accidentally consume legitimate text. 
 """
 
 from __future__ import annotations
@@ -40,7 +26,7 @@ from typing import Callable, Dict
 
 # -------------------------------------------------------------------- #
 # Texttype taxonomy. Used by the dispatcher and exported for
-# validation by callers (the Stata-side analyze command).
+# validation by callers (the Stata-side analysis command).
 # -------------------------------------------------------------------- #
 
 TEXTTYPE_NAMES = (
@@ -53,9 +39,9 @@ TEXTTYPE_NAMES = (
 )
 
 
-# Defaults derived from the v0.3 Tier-2 design note's Table 1.
+# Defaults for Table 1.
 # Each entry maps texttype -> (default_unit, default_min_text_len).
-# The Stata layer honours these defaults when the corresponding
+# The Stata layer honors these defaults when the corresponding
 # option is not explicitly passed.
 TEXTTYPE_DEFAULTS: Dict[str, dict] = {
     "abstract":   {"unit": "sentence",  "mintextlen": 50},
@@ -68,8 +54,7 @@ TEXTTYPE_DEFAULTS: Dict[str, dict] = {
 
 
 # Expected median character-length windows from the design note's
-# Table 2. The sanity check warns when the post-clean median falls
-# outside the outer bound. The format is (warn_below, warn_above);
+# Table 2. The format is (warn_below, warn_above);
 # either bound can be None to disable the corresponding direction.
 TEXTTYPE_LENGTH_WINDOWS: Dict[str, tuple] = {
     "abstract":   (200, 10000),
@@ -87,7 +72,6 @@ TEXTTYPE_LENGTH_WINDOWS: Dict[str, tuple] = {
 
 _WHITESPACE_RUN = re.compile(r"\s+")
 
-# Control characters: anything in the C0 set except CR/LF/TAB, plus DEL.
 _CONTROL_CHARS = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]")
 
 
@@ -100,7 +84,7 @@ def _finalise(s: str) -> str:
 
 
 # -------------------------------------------------------------------- #
-# Cleaner: abstract (preserves v0.2.9 _clean_text behaviour)
+# Cleaner: abstract (preserves _clean_text behavior)
 # -------------------------------------------------------------------- #
 
 _EMERALD_SECTIONS = re.compile(
@@ -142,22 +126,18 @@ def _clean_abstract(s: str) -> str:
 # Cleaner: fulltext
 # -------------------------------------------------------------------- #
 
-# LaTeX command patterns. The patterns are intentionally narrow: they
-# target named commands with the kinds of arguments that appear in
-# research-paper sources, and leave plain text untouched.
+# LaTeX command patterns. 
 _LATEX_CITATIONS = re.compile(
     r"\\(?:cite|citep|citet|citeauthor|citeyear|ref|eqref|label|footnote|footnotemark)"
     r"(?:\[[^\]]*\])?(?:\{[^{}]*\})+",
     flags=re.IGNORECASE,
 )
-# Begin/end environments (\begin{equation}...\end{equation}). Conservative:
-# only match short, single-line environments to avoid eating prose. The
-# common long-environment cleanup is left to the caller's preprocessor.
+
 _LATEX_ENVIRONMENT_INLINE = re.compile(
     r"\\(?:begin|end)\{[a-z*]+\}",
     flags=re.IGNORECASE,
 )
-# Generic backslash-named-command with optional argument.
+
 _LATEX_COMMAND_GENERIC = re.compile(
     r"\\[a-zA-Z]+\*?(?:\[[^\]]*\])?(?:\{[^{}]*\})?",
 )
@@ -177,9 +157,6 @@ _FIGURE_TABLE_CAPTION = re.compile(
     flags=re.IGNORECASE | re.MULTILINE,
 )
 
-# Inline citation markers [12], [12, 13], [12-15], (Smith 2020).
-# Conservative: only inside square brackets with digits, to avoid
-# eating numerical content in prose.
 _NUMERIC_CITATION = re.compile(r"\[\s*\d+(?:\s*[-,]\s*\d+)*\s*\]")
 
 
@@ -250,7 +227,7 @@ _HTML_TAG = re.compile(r"<[/]?[a-zA-Z][a-zA-Z0-9\-]*(?:\s[^>]*)?\/?>")
 # HTML entities &amp; &lt; etc.
 _HTML_ENTITY = re.compile(r"&(?:[a-zA-Z]+|#\d+|#x[0-9a-fA-F]+);")
 
-# Rating row patterns. Conservative — match standard rating wordings only.
+
 _STAR_RATING = re.compile(
     r"\b\d(?:\.\d)?\s+(?:out of|/)\s+\d\s+stars?\b",
     flags=re.IGNORECASE,
@@ -281,8 +258,6 @@ def _clean_review(s: str) -> str:
 # Cleaner: comment
 # -------------------------------------------------------------------- #
 
-# URL pattern. Matches http(s) and bare www. URLs; conservative on what
-# counts as a URL boundary (whitespace or end-of-string).
 _URL_HTTP = re.compile(
     r"https?://\S+",
     flags=re.IGNORECASE,

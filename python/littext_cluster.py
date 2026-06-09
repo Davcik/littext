@@ -4,15 +4,6 @@ The output is a canonical_form per construct: within each cluster, the most
 frequent surface form is chosen as the canonical label. Singletons (HDBSCAN
 noise points, labelled -1) are kept as their own one-member clusters because
 they may still be valid constructs.
-
-v0.1.1 changes:
-  - min_cluster_size is now fixed at 2 (rather than scaling with corpus size),
-    which was producing over-merged mega-clusters on small corpora.
-  - After HDBSCAN, a within-cluster similarity filter splits any cluster
-    whose minimum pairwise cosine similarity falls below SIMILARITY_FLOOR.
-    This rejects the failure mode where HDBSCAN groups semantically-related
-    but distinct constructs into one density region (e.g. "brand equity",
-    "brand image", "service quality", "loyalty" all in the same cluster).
 """
 
 from __future__ import annotations
@@ -21,11 +12,6 @@ import numpy as np
 import pandas as pd
 
 
-# Constructs are kept in the same cluster only if every pairwise cosine
-# similarity within the cluster meets this floor. 0.65 is empirically the
-# point at which marketing constructs like "brand equity" and "brand trust"
-# stay merged but "brand equity" and "service quality" do not. Override via
-# the cluster_threshold option in v0.2.
 SIMILARITY_FLOOR = 0.65
 
 
@@ -92,7 +78,7 @@ def cluster_constructs(constructs_df: pd.DataFrame, embeddings: np.ndarray) -> p
     import hdbscan
 
     n = len(constructs_df)
-    # v0.1.1: fixed min_cluster_size = 2 rather than scaling with n.
+    
     # The scaling rule produced over-merged mega-clusters on small corpora.
     min_cs = 2
     if n <= 2000:
@@ -104,15 +90,11 @@ def cluster_constructs(constructs_df: pd.DataFrame, embeddings: np.ndarray) -> p
         clusterer = hdbscan.HDBSCAN(metric="euclidean", min_cluster_size=min_cs, min_samples=1)
         labels = clusterer.fit_predict(embeddings)
 
-    # v0.1.1: split any HDBSCAN cluster whose min within-cluster similarity
-    # falls below SIMILARITY_FLOOR. This rejects the "all marketing terms are
-    # one cluster" failure mode.
     labels = _split_loose_clusters(labels, embeddings, floor=SIMILARITY_FLOOR)
 
     out = constructs_df.copy().reset_index(drop=True)
     out["cluster_id"] = labels.astype(int)
 
-    # Promote HDBSCAN noise points (-1) to singleton clusters with unique ids
     max_label = int(out["cluster_id"].max()) if (out["cluster_id"] >= 0).any() else -1
     next_id = max_label + 1
     new_labels = out["cluster_id"].tolist()
@@ -122,7 +104,6 @@ def cluster_constructs(constructs_df: pd.DataFrame, embeddings: np.ndarray) -> p
             next_id += 1
     out["cluster_id"] = new_labels
 
-    # Canonical form: the most-frequent surface form within each cluster
     canon = (
         out.sort_values(["cluster_id", "freq_doc"], ascending=[True, False])
            .groupby("cluster_id", as_index=False)

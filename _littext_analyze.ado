@@ -1,21 +1,6 @@
 /*!
 _littext_analyze: run the construct/relationship pipeline on the current dataset.
 
-The entire Python pipeline runs via a single `python script` invocation. This
-avoids two problems that the previous designs encountered:
-
-  (1) Stata 19.5's per-line `python:` bridge has overhead and, on Windows, can
-      put the Stata-Python integration into a state where consecutive python:
-      calls hang silently. `python script` crosses the bridge exactly once.
-
-  (2) The multi-line `python: ... end` block form cannot be used inside
-      `program define` because the `end` keyword collides with the program's
-      own `end`, causing a parser error at .ado load time.
-
-The script at python/littext_run.py reads its parameters from Stata locals
-via sfi.Macro.getLocal(), so backslashes in Windows tempfile paths do not
-need to be escaped via Stata macro expansion.
-
 Output: three Stata frames left in memory
   lt_constructs   - canonical constructs with frequency and cluster info
   lt_relations    - candidate construct relationships with confidence scores
@@ -24,21 +9,10 @@ Output: three Stata frames left in memory
 
 program define _littext_analyze, eclass
     version 19.0
-    /* Option B (v0.4.8): remember the frame the user called analyze from,
-       so we can return them to it at the end. analyze populates the named
-       result frames lt_constructs / lt_relations / lt_diag, but leaving
-       the user's active frame unchanged is least surprising and lets a
-       second analyze on the same data succeed without a manual reload. */
     local entry_frame = c(frame)
     syntax , Text(varname) [Id(varname) Year(varname) Journal(varname) Unit(string) EMBedmodel(string) MINFreq(string) MAXRelations(integer 100000) MINTextlen(string) KEEPEmpty ADDSentiment Quiet Saving(string) Replace TEXTtype(string)]
-    /* v0.3 Tier-2: resolve texttype first because it drives the
-       defaults for unit() and mintextlen() that the subsequent
-       option-resolution blocks consume. */
     local texttype_user = lower(trim("`texttype'"))
     if "`texttype_user'" == "" {
-        /* Option B: when texttype() is not declared, default to
-           'abstract' and emit a one-line note so the user knows the
-           pipeline made a substantive choice on their behalf. */
         local texttype "abstract"
         local texttype_explicit = 0
     }
@@ -52,7 +26,7 @@ program define _littext_analyze, eclass
         local texttype_explicit = 1
     }
     /* Texttype-derived defaults for unit() and mintextlen(). These
-       are honoured only when the user has not passed the option
+       are honored only when the user has not passed the option
        explicitly. */
     if "`texttype'" == "abstract" {
         local tt_unit "sentence"
@@ -92,10 +66,6 @@ program define _littext_analyze, eclass
         exit 198
     }
     if "`embedmodel'" == "" local embedmodel "all-MiniLM-L6-v2"
-    /* v0.3 Tier-2: mintextlen() defaults to the texttype-derived value
-       when the option is not passed; honour the explicit value
-       otherwise. The texttype defaults are 50/500/30/20/10/50 for
-       abstract/fulltext/transcript/review/comment/other respectively. */
     local mintextlen_user = trim("`mintextlen'")
     if "`mintextlen_user'" == "" {
         local mintextlen = `tt_mintextlen'
@@ -115,12 +85,6 @@ program define _littext_analyze, eclass
         exit 198
     }
     local keepempty_flag = ("`keepempty'" != "")
-    /* v0.2.6: corpus-size-aware min_freq default.
-       For small corpora (under 50 abstracts) the default is 1, which keeps
-       single-document constructs in the candidate frame so the relation
-       matcher can exercise them. For larger corpora the default returns to
-       2, which acts as a noise filter against single-document artefacts.
-       The user-supplied minfreq() option overrides in either case. */
     qui count
     local n_docs = r(N)
     local minfreq_user = "`minfreq'"
@@ -150,10 +114,7 @@ program define _littext_analyze, eclass
     else {
         local id_autogen = 0
     }
-    /* v0.3 Tier-1 guardrail: verify the text() variable is a string.
-       This is a defensive check that catches misdeclared text variables
-       before any Python is invoked. */
-    capture confirm string variable `text'
+    
     if _rc {
         di as err "littext: text() variable '`text'' is not a string variable."
         di as err "        Cast it to string first (decode/tostring), or supply a different variable."
@@ -168,10 +129,9 @@ program define _littext_analyze, eclass
     _littext_resolve, subdir(python) name(littext_run.py)
     local pypath `"`r(dir)'"'
     local runscript `"`r(path)'"'
-    /* v0.2.6 + v0.3: print resolved options so the user knows what
-       filters and defaults were applied. Suppressed under quiet. */
+    
     if !`q' {
-        /* v0.3 Tier-2: texttype note (Option B per design). */
+        
         if !`texttype_explicit' {
             di as txt "littext: texttype not declared; defaulting to texttype(abstract)."
             di as txt "        For full-text corpora pass texttype(fulltext); for transcripts texttype(transcript);"
@@ -204,7 +164,7 @@ program define _littext_analyze, eclass
     keep `id' `text' `year' `journal'
     rename `text' lt_text
     rename `id' lt_id
-    /* v0.3 Tier-1 guardrail: row-drop pass with logged counts.
+   
        Drops in this order (each is logged if any rows are removed):
          (1) rows where lt_text is missing or empty/whitespace-only;
          (2) rows where lt_id is missing (only if id() was user-supplied;
@@ -269,17 +229,9 @@ program define _littext_analyze, eclass
     else gen str1 lt_journal = ""
     qui save "`corpus_dta'", replace
     restore
-    /* Stage 4: create the three output frames so Python can populate them.
-       Switch to the entry frame first. A previous analyze leaves the
-       result frames defined; Stata refuses to drop the current frame, so
-       dropping must happen from a frame that is not one of the three. The
-       entry frame is guaranteed safe: syntax already validated text()
-       against it, so it is the user's data frame, never an output frame. */
+    /* Stage 4: create the three output frames so Python can populate them. */
     if !`q' di as txt "[4/5] littext: creating output frames..."
-    /* If the entry frame is itself one of the output frames (only possible
-       if the user's text() column name collided with an lt_relations
-       column and they were sitting in it), switching there would not let
-       us drop it. Fall back to default in that case. */
+    
     if inlist("`entry_frame'", "lt_constructs", "lt_relations", "lt_diag") {
         local entry_frame "default"
     }

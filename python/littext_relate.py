@@ -1,47 +1,5 @@
 """littext_relate: score candidate relationships between constructs (v0.2).
 
-v0.2 architectural change: the relation-pattern matcher is replaced by a
-five-pattern dispatcher that uses spaCy dependency arcs rather than surface
-string positions. Each pattern matcher both classifies the relation_type
-AND assigns (source, target) ordering based on the syntactic role each
-construct plays in the parsed sentence.
-
-Pattern order (applied most-specific to least-specific):
-
-  A. Nominal moderation/mediation
-     "the moderating role of X on the relationship between A and B"
-     "X mediates the effect of A on B"
-     "the mediating effect of X"
-     Precision: high. Confidence boost: +0.30.
-
-  B. Finite-verb VSO with dependency-arc direction
-     "X drives Y", "X reduces Y"
-     Subject and object identified via nsubj / dobj / pobj arcs.
-     Precision: medium-high. Confidence boost: +0.20.
-
-  C. Passive constructions
-     "Y is driven by X" -> source X, target Y
-     Subject and agent identified via nsubjpass / agent arcs.
-     Precision: high. Confidence boost: +0.25.
-
-  D. Nominal-pattern relationships
-     "the effect of X on Y", "the influence of X on Y"
-     "the relationship between X and Y"
-     "X is positively related to Y"
-     "X is negatively associated with Y"
-     Direction inferred from "of...on" / "between...and" / "of...for" prepositions.
-     Precision: medium. Confidence boost: +0.10.
-
-  E. Adjectival valence (specialises pattern D)
-     "a positive effect of X on Y", "a significant negative impact of X on Y"
-     Same syntactic structure as D, with valence read from an adjacent
-     adjective rather than a verb.
-     Precision: medium. Confidence boost: +0.15.
-
-If no pattern fires, the relation is classified as `assoc` with the bare
-NPMI confidence (no boost). (source, target) is then assigned alphabetically
-for deterministic output.
-
 If add_sentiment=True, an affective-polarity score on the evidence sentence
 is added in `text_polarity` (VADER). This is distinct from relationship
 valence and should not be interpreted as one.
@@ -170,21 +128,13 @@ def _find_construct_span(doc, surface: str) -> Optional[Tuple[int, int]]:
 
 
 def _find_any_span(doc, surfaces) -> Optional[Tuple[int, int]]:
-    """v0.2.9: try a list of candidate surface forms and return the first
-    contiguous match found in the doc.
-
+    """
     Background: HDBSCAN clustering in the synonym-collapse step assigns a
     canonical_form to each surface form. When the canonical form differs
     lexically from the surface form that actually appears in a given
     sentence (e.g. surface "loyalty" clustered under canonical "brand
     loyalty"), _find_construct_span(doc, canonical) cannot find a
-    contiguous match and returns None. _classify_pair then falls back to
-    "Z" and silently disables all six dependency patterns for that pair.
-
-    The fix is to pass the cluster's full surface-form list and try each
-    until one matches. Order matters: we search the longest forms first
-    because shorter forms tend to be substrings of longer ones and we
-    want the most specific match the sentence actually supports.
+    contiguous match and returns None. 
     """
     if isinstance(surfaces, str):
         return _find_construct_span(doc, surfaces)
@@ -198,7 +148,7 @@ def _find_any_span(doc, surfaces) -> Optional[Tuple[int, int]]:
 
 
 def _sentence_flags(doc) -> Dict[str, bool]:
-    """v0.2.2 optimisation: pre-compute which patterns can possibly fire on
+    """optimisation: pre-compute which patterns can possibly fire on
     a given parsed sentence. The pattern matchers themselves then check this
     flag first and exit immediately if the relevant trigger is absent,
     avoiding a full O(N) token scan per (sentence, construct-pair) combination.
@@ -206,7 +156,7 @@ def _sentence_flags(doc) -> Dict[str, bool]:
     Returns a dict with keys A, B, C, D, E, F. Value True means "this pattern
     might match"; False means "this pattern definitely cannot match".
 
-    v0.2.3: F flag added for the copular-nominal-anchor pattern.
+    F flag is the copular-nominal-anchor pattern.
     """
     has_mod_med_verb = False
     has_valence_verb = False
@@ -231,12 +181,6 @@ def _sentence_flags(doc) -> Dict[str, bool]:
                 has_assoc_relate_verb = True
         if lem in _REL_ANCHOR_NOUNS:
             has_anchor_noun = True
-            # v0.2.5: detect valence adjectives modifying the anchor noun via
-            # direct amod OR via amod->conj chain. Real marketing prose often
-            # writes "a significant and positive relationship": spaCy parses
-            # this as amod(significant -> relationship) and conj(positive ->
-            # significant), so "positive" is NOT a direct amod child of the
-            # anchor and the v0.2.4 check missed it.
             for child in tok.children:
                 if child.dep_ != "amod":
                     continue
@@ -273,13 +217,7 @@ def _head_token(doc, span: Tuple[int, int]):
 
 def _is_within_or_descendant(target_token, anchor_span: Tuple[int, int]) -> bool:
     """True if target_token is inside the anchor_span or is a syntactic
-    descendant of any token in the anchor_span.
-
-    v0.2.2: the ancestor walk is bounded by the document length. A well-formed
-    spaCy parse cannot exceed that depth; a degenerate cyclic parse (which
-    has been observed on copyright-trailer fragments and similar boilerplate)
-    is detected and broken out of. Without the bound, certain sentences
-    produced an effectively infinite loop visible only at the system level.
+    descendant of any token in the anchor_span.   
     """
     a_start, a_end = anchor_span
     if a_start <= target_token.i < a_end:
@@ -298,23 +236,8 @@ def _is_within_or_descendant(target_token, anchor_span: Tuple[int, int]) -> bool
 
 
 def _construct_anywhere_below(start_token, construct_span: Tuple[int, int], max_depth: int = 4) -> bool:
-    """v0.2.3: descend the dependency tree from start_token through prep/pobj
-    arcs, looking for a construct head within `construct_span`.
-
-    Rationale: real marketing abstracts nest theoretical constructs two or
-    three prep-of levels deep inside noun phrases ("enhance the perception
-    of value and quality"). Pattern B in v0.2.0-v0.2.2 required the
-    construct head to be a DIRECT subject or object of the trigger verb,
-    which missed these nested cases. This helper walks DOWN the tree via
-    selected dependency labels (prep, pobj, dobj, attr, conj, nmod, amod)
-    up to a fixed depth and returns True if any reachable token's index
-    falls inside the construct span.
-
-    max_depth=4 was empirically chosen on the 33-abstract real corpus:
-    depth 1-2 catches most cases, depth 3-4 catches the longer
-    "the perception of the effect of X on Y" type chains, depth 5+ adds
-    almost no recall and risks false positives by reaching constructs in
-    unrelated subordinate clauses.
+    """descend the dependency tree from start_token through prep/pobj
+    arcs, looking for a construct head within `construct_span`.   
     """
     c_start, c_end = construct_span
     # BFS through allowed dependency arcs
@@ -336,23 +259,13 @@ def _construct_anywhere_below(start_token, construct_span: Tuple[int, int], max_
 
 
 def _all_pobjs(prep_token) -> List:
-    """v0.2.4: return ALL pobj children of a preposition, not just the first.
-
-    Rationale: spaCy's tokenizer splits hyphenated nouns into multiple
-    tokens (e.g. 'e-loyalty' -> ['e', '-', 'loyalty']), and the dependency
-    labeller often attaches each fragment as a separate pobj of the
-    governing preposition rather than as a compound. The v0.2.3 traversal
-    bug was that `for grand in child.children: if grand.dep_ == "pobj":
-    break` returned the FIRST pobj only, which on hyphenated constructs
-    was almost always the wrong fragment. Pattern F on the test sentence
-    "trust is the most important antecedent of e-loyalty..." was picking
-    up "e" rather than "loyalty" and failing every downstream check.
+    """return ALL pobj children of a preposition, not just the first.
     """
     return [c for c in prep_token.children if c.dep_ == "pobj"]
 
 
 def _any_pobj_reaches(prep_token, construct_span: Tuple[int, int]) -> bool:
-    """v0.2.4: True if ANY pobj child of `prep_token` reaches the construct
+    """True if ANY pobj child of `prep_token` reaches the construct
     span via `_construct_anywhere_below`."""
     for pobj in _all_pobjs(prep_token):
         if _construct_anywhere_below(pobj, construct_span):
@@ -361,22 +274,9 @@ def _any_pobj_reaches(prep_token, construct_span: Tuple[int, int]) -> bool:
 
 
 def _collect_preps_in_subtree(anchor_token, prep_texts: set, max_depth: int = 3) -> List:
-    """v0.2.5: collect all `prep` tokens whose surface text is in `prep_texts`,
+    """collect all `prep` tokens whose surface text is in `prep_texts`,
     reachable from `anchor_token` by walking down through prep/pobj/conj/nmod
-    arcs, up to `max_depth`.
-
-    Rationale: PP-attachment is unstable for sentences like "the effect of X
-    on Y" where spaCy may attach "on Y" directly to "effect" or to a noun
-    inside the "of X" phrase. Pattern D in v0.2.4 looked only at direct
-    children of the anchor, which missed every case where the parser made
-    the alternative attachment. Walking the subtree to a small fixed depth
-    captures the common attachment variants while staying bounded.
-
-    Empirical observation on the 33-paper test corpus: spaCy attached the
-    "on" phrase variously to (a) the anchor noun itself, (b) a noun inside
-    the of-pobj chain (e.g. "tools" in "consistency between tools on
-    formation"), (c) the dobj of the matrix verb. Walking depth=3 from the
-    anchor covers all observed cases without reaching into unrelated clauses.
+    arcs, up to `max_depth`.    
     """
     found = []
     frontier = [(anchor_token, 0)]
@@ -396,31 +296,13 @@ def _collect_preps_in_subtree(anchor_token, prep_texts: set, max_depth: int = 3)
                 frontier.append((child, depth + 1))
     return found
 
-
-# --- Pattern matchers (each returns (rel_type, source, target, pattern_id)
-#     or None if no match). Source and target are the original surface forms
-#     a and b as passed in; the matcher decides the ORDER. ---
-
 def _pattern_A_nominal_moderation(doc, a_span, b_span, a, b) -> Optional[Tuple[str, str, str, str]]:
     """Nominal moderation/mediation patterns.
 
     Examples:
       "the moderating role of X on the relationship between A and B"
       "X mediates the effect of A on B"
-      "the mediating role of M"
-
-    v0.2.5: pattern A now distinguishes two trigger configurations:
-      - Verbal: trigger has pos=VERB and a non-amod dep (typically ROOT,
-        conj, ccomp). The nsubj is the moderator/mediator.
-      - Nominal (adjectival): trigger has pos=VERB but dep=amod, modifying
-        a head noun like 'role' or 'effect'. The "of" pobj of that noun is
-        the mediator. This branch was missing in v0.2.4, which caused real
-        marketing prose ("the mediating role of emotional contagion") to
-        fall through to the verbal branch and either misfire or miss.
-
-    Conservative approximation: we classify the pair (a, b) as participating
-    in a mediation/moderation; we do not attempt to resolve the full
-    (mediator, source, target) triple. Triple resolution is v0.3 work.
+      "the mediating role of M"    
     """
     for tok in doc:
         if tok.pos_ != "VERB":
@@ -430,7 +312,7 @@ def _pattern_A_nominal_moderation(doc, a_span, b_span, a, b) -> Optional[Tuple[s
             continue
         rel = "moderates" if lem in _MODERATE_VERBS else "mediates"
 
-        # v0.2.5: branch on verbal vs nominal use.
+        # branch on verbal vs nominal use.
         if tok.dep_ == "amod":
             # Nominal mediation/moderation. The trigger modifies a head
             # noun ("role", "effect", "influence"). The mediator is the
@@ -457,7 +339,7 @@ def _pattern_A_nominal_moderation(doc, a_span, b_span, a, b) -> Optional[Tuple[s
             # mediation that involves our pair tangentially. Keep input order.
             return (rel, a, b, "A")
 
-        # Verbal mediation/moderation (the v0.2.4 logic).
+        # Verbal mediation/moderation.
         a_head = _head_token(doc, a_span)
         b_head = _head_token(doc, b_span)
         a_connected = _is_within_or_descendant(a_head, (tok.i, tok.i + 1))
@@ -482,14 +364,6 @@ def _pattern_B_finite_vso(doc, a_span, b_span, a, b) -> Optional[Tuple[str, str,
 
     "X drives Y": find a VERB whose nsubj is in one construct span and whose
     dobj/pobj is in the other. The valence is determined by the verb's lemma.
-
-    v0.2.3: this matcher now uses _construct_anywhere_below to walk down
-    prep-of chains. The previous version required the construct head to be
-    a DIRECT child of the verb (a literal nsubj or dobj), which missed
-    common marketing phrasings such as "X enhances the perception of Y".
-    Empirically, depth-4 traversal recovers roughly half the directional
-    rows that v0.1.3 caught via its surface heuristic, without v0.1.3's
-    false positives from cross-clause co-occurrences.
     """
     for tok in doc:
         if tok.pos_ != "VERB":
@@ -518,9 +392,7 @@ def _pattern_B_finite_vso(doc, a_span, b_span, a, b) -> Optional[Tuple[str, str,
                 prep_objs.extend(_all_pobjs(child))
         if subj_tok is None or (direct_obj_tok is None and not prep_objs):
             continue
-        # v0.2.4: check whether subject and ANY object (direct or prep-mediated)
-        # together reach the two constructs in either order.
-        # Build the candidate object set as direct_obj + every prep_obj.
+        
         obj_candidates = ([direct_obj_tok] if direct_obj_tok is not None else []) + prep_objs
         # Subject reaches?
         subj_reaches_a = _construct_anywhere_below(subj_tok, a_span)
@@ -536,13 +408,7 @@ def _pattern_B_finite_vso(doc, a_span, b_span, a, b) -> Optional[Tuple[str, str,
 
 
 def _pattern_C_passive(doc, a_span, b_span, a, b) -> Optional[Tuple[str, str, str, str]]:
-    """Passive constructions: "Y is driven by X" -> source=X, target=Y.
-
-    Subject identified via nsubjpass; agent identified via the agent's
-    prepositional phrase. Valence from the main verb's lemma.
-
-    v0.2.3: like pattern B, uses _construct_anywhere_below to walk down
-    prep-of chains so that "Y is enhanced by the influence of X" matches.
+    """Passive constructions: "Y is driven by X" -> source=X, target=Y.    
     """
     for tok in doc:
         if tok.pos_ != "VERB":
@@ -578,14 +444,6 @@ def _pattern_C_passive(doc, a_span, b_span, a, b) -> Optional[Tuple[str, str, st
 
 
 # Nouns that act as relationship anchors in nominal patterns.
-# v0.2.3 expansion: the v0.2.0 set was too narrow. Real marketing abstracts
-# express directional claims with nominal anchors that the original set did
-# not cover: "X is the antecedent of Y", "Z is a predictor of Y", "X is a
-# driver of Y", "outcomes of X include Y". These nouns also appear in the
-# constructs stop-list (v0.1.2 onward) because they are not theoretical
-# constructs in their own right -- but they ARE relationship anchors. The
-# two code paths are deliberately separate: the stop-list governs construct
-# extraction, this set governs pattern-D matching.
 _REL_ANCHOR_NOUNS = {
     # v0.2.0 originals
     "effect", "effects", "influence", "influences", "impact", "impacts",
@@ -600,12 +458,9 @@ _REL_ANCHOR_NOUNS = {
     "moderator", "moderators",
 }
 
-# v0.2.3: anchor nouns that carry an INHERENT directional meaning when used
+# anchor nouns that carry an INHERENT directional meaning when used
 # copularly ("X is the antecedent of Y").
-# The value is ("relation_type", "direction") where direction is "forward"
-# (subject -> pobj of "of") or "backward" (pobj -> subject).
-# Example: "X is the antecedent of Y" -> forward, X precedes/predicts Y.
-# Example: "X is the consequence of Y" -> backward, Y causes X.
+
 _COPULAR_ANCHOR_LEXICON = {
     "antecedent":  ("pos_assoc", "forward"),
     "antecedents": ("pos_assoc", "forward"),
@@ -625,7 +480,7 @@ _COPULAR_ANCHOR_LEXICON = {
 
 
 def _pattern_F_copular_anchor(doc, a_span, b_span, a, b) -> Optional[Tuple[str, str, str, str]]:
-    """v0.2.3: copular nominal-anchor pattern; v0.2.8: extended with two
+    """copular nominal-anchor pattern; v0.2.8: extended with two
     additional configurations discovered in real-corpus parses.
 
     Recognises sentences such as:
@@ -635,32 +490,7 @@ def _pattern_F_copular_anchor(doc, a_span, b_span, a, b) -> Optional[Tuple[str, 
       (config 2, v0.2.8)   "Brand image as a determinant of brand attitude"
                            "X as determinants of Y" (predicative complement)
       (config 3, v0.2.8)   "The main predictor of brand equity is consumer trust"
-                           (anchor noun as subject; X is the attr)
-
-    Direction follows the anchor's inherent semantics:
-      antecedent/precursor/predictor/driver of  -> subject precedes pobj
-      outcome/consequence of                    -> subject succeeds pobj
-
-    v0.2.4 fixes (informed by parse inspection on real abstracts):
-      (a) The subject of the copula is now sought through ANY ancestor of
-          the anchor noun, not only the immediate head, because hyphenated
-          tokens and adjectival modifiers can sit between the anchor and
-          the copula in the dependency tree.
-      (b) The "of" prep object is collected as ALL pobj children, not the
-          first, because spaCy splits hyphenated constructs ("e-loyalty"
-          -> "e" + "-" + "loyalty") into multiple pobj fragments.
-
-    v0.2.8 fix (informed by inspection of the 99-document corpus):
-      Pattern F as written required a copula AND a `nsubj`-style ancestor.
-      Real marketing prose often uses two alternative configurations:
-        (i)  "X as [anchor] of Y": the anchor noun is governed by "as"
-             (dep=prep) whose head is a matrix verb; the matrix verb has
-             a dobj/nsubj that supplies X. This is the "ROLE-AS" branch.
-        (ii) "The [anchor] of Y is X": the anchor noun is itself the
-             nsubj of a copula, and X is the attr. This is the "INVERSE"
-             branch (subject and predicate swapped relative to config 1).
-      Both branches were not detected in v0.2.4-v0.2.7 and produced zero
-      F-matches on the 99-document corpus despite ~25 candidate sentences.
+                           (anchor noun as subject; X is the attr)    
     """
     for tok in doc:
         lem = tok.lemma_.lower()
@@ -668,9 +498,7 @@ def _pattern_F_copular_anchor(doc, a_span, b_span, a, b) -> Optional[Tuple[str, 
             continue
 
         relation_type, direction = _COPULAR_ANCHOR_LEXICON[lem]
-
-        # v0.2.4: find the "of" preposition modifying the anchor and collect
-        # ALL of its pobj children (handling the hyphenation-split case).
+        
         of_prep = None
         for ch in tok.children:
             if ch.dep_ == "prep" and ch.text.lower() == "of":
@@ -679,14 +507,7 @@ def _pattern_F_copular_anchor(doc, a_span, b_span, a, b) -> Optional[Tuple[str, 
         if of_prep is None:
             # Without an "of" prep there's no anchor->Y structure; F cannot fire.
             continue
-
-        # --- Config 1: anchor is attr/nsubj of a copula (the original case) ---
-        # Walk UP from the anchor through "bridge" arcs (amod, compound,
-        # quantmod) until we reach a copula. If we encounter a non-bridge
-        # head before reaching a copula, the anchor is functioning as
-        # something other than a copular predicate (e.g. as the object of
-        # a verb in the "as Z of Y" construction). In that case Config 1
-        # does not apply and we fall through to Configs 2 and 3.
+        
         subj = None
         # The anchor needs to be a copular attribute (dep=attr, oprd, or
         # acomp) directly, or its head needs to walk back to such a node
@@ -701,8 +522,7 @@ def _pattern_F_copular_anchor(doc, a_span, b_span, a, b) -> Optional[Tuple[str, 
                     if ch.dep_ in {"nsubj", "nsubjpass"}:
                         subj = ch
                         break
-        else:
-            # Try walking through bridges (rare: anchor buried under amod)
+        else:            
             steps = 0
             while cur.head is not cur and steps < len(doc):
                 steps += 1
@@ -717,36 +537,18 @@ def _pattern_F_copular_anchor(doc, a_span, b_span, a, b) -> Optional[Tuple[str, 
                             break
                     if subj is not None:
                         break
-
-        # --- Config 2 (v0.2.8): "X as [anchor] of Y" / "...as determinants of..." ---
-        # The anchor is governed by an "as" preposition. The matrix verb
-        # (head of "as") has a dobj or nsubj that supplies X.
+        
         if subj is None and tok.dep_ == "pobj":
             governing_prep = tok.head
             if governing_prep.pos_ == "ADP" and governing_prep.text.lower() == "as":
-                matrix = governing_prep.head
-                # The X-construct is the dobj of the matrix verb when one
-                # exists ("we analyze brand image as a determinant of...");
-                # otherwise it is the nsubj ("brand image, as a determinant
-                # of..., influences...") - i.e. an apposition-like structure.
-                # We prefer dobj first because the canonical case in real
-                # marketing prose is the active-voice "X analyzes Y as Z".
+                matrix = governing_prep.head                
                 candidates = sorted(
                     [ch for ch in matrix.children if ch.dep_ in {"dobj", "nsubj", "nsubjpass"}],
                     key=lambda c: 0 if c.dep_ == "dobj" else 1
                 )
                 if candidates:
                     subj = candidates[0]
-
-        # --- Config 3 (v0.2.8): "The [anchor] of Y is X" inverse ---
-        # The anchor noun IS the nsubj of a copula; X is the attr/acomp.
-        # In this configuration X plays the role of the "source" construct
-        # (e.g. "the predictor of Y is X" means X is the predictor and X
-        # predicts Y). Conceptually we place X into the `subj` slot used
-        # by Config 1, and the rest of the code resolves direction from
-        # the anchor's inherent semantics without any flip - because in
-        # both Config 1 and Config 3, the "subj"-positioned construct is
-        # the source and the of-pobj is the target.
+        
         if subj is None and tok.dep_ == "nsubj":
             copula = tok.head
             if copula.lemma_.lower() == "be" or copula.pos_ in {"VERB", "AUX"}:
@@ -785,19 +587,8 @@ def _pattern_D_nominal(doc, a_span, b_span, a, b) -> Optional[Tuple[str, str, st
     "X is associated with Y" -> assoc (symmetric)
     "X is related to Y" -> assoc
     "X have an effect on Y" -> source=X (nsubj of matrix verb), target=Y
-
-    v0.2.5 changes informed by parse inspection on the real corpus:
-      - PP attachment of "on Y" / "for Y" is not always to the anchor noun;
-        spaCy attaches it elsewhere in the anchor's subtree (e.g. to a noun
-        in the of-pobj chain or to the matrix verb). We now use
-        `_collect_preps_in_subtree` to find on/for prepositions anywhere
-        in the anchor's subtree, not just direct children.
-      - "X have an effect on Y" where X is the nsubj of the matrix verb
-        and the anchor is the dobj is now a distinct directional pattern.
-      - "between A and B" handling expanded to follow nmod and conj arcs
-        because spaCy parses "between X and Y" inconsistently.
     """
-    # First pass: look for relationship-anchor nouns and walk their subtree
+    
     for tok in doc:
         if tok.lemma_.lower() not in _REL_ANCHOR_NOUNS:
             continue
@@ -892,18 +683,7 @@ def _pattern_E_adjectival(doc, a_span, b_span, a, b) -> Optional[Tuple[str, str,
 
     "a positive effect of X on Y" / "a significant negative impact of X on Y"
     Same syntactic structure as D, but with a valence adjective modifying
-    the relationship anchor noun.
-
-    v0.2.5 changes informed by parse inspection on the real corpus:
-      - Valence adjective may be reached via amod->conj chain
-        ("a significant and positive relationship"). The amod direct-child
-        check is supplemented by a conj walk.
-      - PP attachment of "on Y" / "for Y" can land elsewhere in the anchor
-        subtree; we now use `_collect_preps_in_subtree`.
-      - "between A and B" symmetric case is supported as in pattern D.
-      - "X have a negative effect on Y" structure: when there is no "of"
-        pobj on the anchor but there is an "on" pobj reachable, source can
-        be the nsubj of the matrix verb that takes the anchor as dobj.
+    the relationship anchor noun.    
     """
     for tok in doc:
         if tok.lemma_.lower() not in _REL_ANCHOR_NOUNS:
@@ -935,8 +715,7 @@ def _pattern_E_adjectival(doc, a_span, b_span, a, b) -> Optional[Tuple[str, str,
                 break
         if valence is None:
             continue
-        # v0.2.5: collect of / on / between / with preps from the anchor's
-        # subtree (not just direct children).
+        
         of_preps = _collect_preps_in_subtree(tok, {"of"}, max_depth=1)
         on_preps = _collect_preps_in_subtree(tok, {"on", "for"}, max_depth=3)
         between_preps = _collect_preps_in_subtree(tok, {"between"}, max_depth=2)
@@ -1026,19 +805,8 @@ def _pattern_E_adjectival(doc, a_span, b_span, a, b) -> Optional[Tuple[str, str,
 
 def _classify_pair(doc, a: str, b: str, flags: Optional[Dict[str, bool]] = None,
                    a_surfaces=None, b_surfaces=None) -> Tuple[str, str, str, str]:
-    """Apply the v0.2 pattern matchers in priority order. Returns
-    (rel_type, source, target, pattern_id). pattern_id is "A".."F" for
+    """Returns (rel_type, source, target, pattern_id). pattern_id is "A".."F" for
     a matched pattern or "Z" if no pattern fired (fallback assoc).
-
-    v0.2.2: an optional `flags` dict (from `_sentence_flags`) lets us skip
-    patterns whose triggers are absent from the sentence, cheaply.
-
-    v0.2.9: optional `a_surfaces` and `b_surfaces` lists let the caller
-    pass every surface form within a's and b's canonical cluster. Span
-    lookup uses _find_any_span to try each candidate; the canonical
-    forms a and b are still used as the source/target identifiers in the
-    returned row. This fixes the silent fallback to Z when canonical
-    forms differ lexically from any token sequence in the sentence.
     """
     a_surfaces = a_surfaces if a_surfaces else [a]
     b_surfaces = b_surfaces if b_surfaces else [b]
@@ -1127,15 +895,7 @@ def score_relations(
 
     import spacy
     nlp = spacy.load("en_core_web_sm", disable=["ner"])
-
-    # v0.2 performance fix: parse each unique sentence ONCE and cache the
-    # resulting Doc. Without this cache, score_relations re-parses the same
-    # sentence for every construct pair it contributes to - on real corpora
-    # a single sentence often appears in 3-10 pairs, and the redundant parses
-    # turn an O(P) loop into O(P*S) with P pairs and S sentences.
-    # v0.2.2: also cache per-sentence pattern-viability flags so that the
-    # five pattern matchers can short-circuit on sentences where their
-    # triggers are absent.
+    
     doc_cache: Dict[str, object] = {}
     flag_cache: Dict[str, Dict[str, bool]] = {}
 
@@ -1145,9 +905,7 @@ def score_relations(
             doc_cache[uid] = d
             flag_cache[uid] = _sentence_flags(d)
         return doc_cache[uid], flag_cache[uid]
-
-    # v0.2 performance fix: pre-build a unit_id -> (doc_id, unit_text) lookup
-    # so the inner loop does not perform a DataFrame filter on every pair.
+    
     uid_first_row: Dict[str, Dict[str, str]] = {}
     for uid in udf["unit_id"].unique():
         sub = udf[udf["unit_id"] == uid]
@@ -1157,25 +915,13 @@ def score_relations(
                 "doc_id":    r["doc_id"],
                 "unit_text": r["unit_text"],
             }
-
-    # v0.2 performance fix: pre-build a canonical_form -> construct_id lookup
-    # to replace the per-pair DataFrame .loc filtering.
+    
     canon_to_cid: Dict[str, int] = {}
     for _, cr in constructs_df.iterrows():
         canon = cr["canonical_form"]
         if canon not in canon_to_cid:
             canon_to_cid[canon] = int(cr["construct_id"])
-
-    # v0.2.9: pre-build a canonical_form -> list_of_surface_forms map. The
-    # relation matcher uses canonical forms as pair identifiers, but
-    # _classify_pair needs to find the construct's actual tokens in the
-    # parsed sentence. When the canonical form differs lexically from the
-    # surface form that appears in a given document (e.g. surface
-    # "loyalty" clustered under canonical "brand loyalty"), the span
-    # lookup would fail and _classify_pair would fall back to "Z",
-    # silently disabling all six dependency patterns for that pair. By
-    # passing every surface form within the canonical cluster, we let the
-    # span lookup find ANY token sequence that the cluster contains.
+    
     canon_to_surfaces: Dict[str, List[str]] = defaultdict(list)
     for _, cr in constructs_df.iterrows():
         canon = cr["canonical_form"]

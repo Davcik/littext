@@ -14,7 +14,7 @@
     "X moderates Z on Y", etc. See CHANGELOG.md for the full release history.
 */
 
-*! version 0.4.9  31may2026  littext: automated construct discovery from academic text
+*! version 1.0  15june2026  littext: automated construct discovery from academic text
 *! Author: Nebojsa S. Davcik
 *! License: GPL-3.0-or-later
 

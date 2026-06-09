@@ -6,40 +6,6 @@ anti-symmetric and tree-like and is therefore not recovered by clustering.
 This module assigns hierarchy information to each canonical form as a
 second pass over the clustering output.
 
-Two detection rules are applied in sequence:
-
-  Rule 1 (right-substring rule):
-    Canonical form C has parent P if and only if all three hold:
-      (a) P appears at the right edge of C, aligned to whole-token
-          boundaries (so 'brand equity' qualifies as a parent of
-          'consumer-based brand equity' but the standalone token
-          'equity' does not, because 'brand equity' is the longer
-          token-aligned right substring);
-      (b) Both C and P appear as canonical forms in the current run;
-      (c) freq_doc(P) >= freq_doc(C). A parent should be at least as
-          well-attested as its subtype.
-    Longest matching parent wins.
-
-  Rule 2 (hyphenated-prefix rule):
-    Any canonical form of the shape 'X-based Parent', 'X-driven Parent',
-    'X-led Parent', or 'X-oriented Parent' is admitted as a child of
-    Parent regardless of the freq_doc condition. The motivating case is
-    the branding literature on 'financial-based brand equity': in a
-    specialist corpus the subtype's document frequency may exceed the
-    umbrella construct's. Rule 1 would refuse the parent assignment;
-    rule 2 overrides this.
-
-Output columns added to the constructs DataFrame:
-
-  parent_canonical  (str)  -- canonical form of immediate IS-A parent,
-                              or empty string if the construct is a root
-  hierarchy_depth   (int)  -- 0 for roots, 1 for direct children, etc.
-  is_root           (int)  -- 1 if construct is a root, 0 otherwise
-
-The module exposes one public function, `assign_hierarchy`, which the
-top-level pipeline (littext_pipeline.run_pipeline) calls between
-cluster_constructs and score_relations.
-
 Note on language: this module is English-specific. English noun
 compounds place the syntactic and semantic head at the right edge with
 modifiers stacking leftward, so the right-substring rule reflects a
@@ -56,11 +22,6 @@ from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 
-
-# Hyphenated-prefix patterns that admit the construct as a child of the
-# right-context noun phrase, irrespective of freq_doc. The match is on
-# the construct's full canonical form; the captured Parent is the
-# remainder after the prefix.
 _HYPHEN_PREFIX_RE = re.compile(
     r"^[a-z][a-z\-]*-(based|driven|led|oriented)\s+(.+)$",
     flags=re.IGNORECASE,
@@ -114,19 +75,11 @@ def _build_parent_map(
     doc_freq: Dict[str, int],
 ) -> Dict[str, str]:
     """Return a mapping child_canonical -> parent_canonical, empty when
-    no parent is admitted. Both keys and values are lowercase-normalised
+    no parent is admitted. Both keys and values are lowercase-normalized
     canonical forms.
-
-    Rule application order:
-      1. For each candidate child, try the hyphenated-prefix rule first;
-         if it returns a candidate parent that exists in `canonicals`,
-         use it (this overrides the freq_doc check of rule 1).
-      2. Otherwise, find the longest right-substring parent in
-         `canonicals` whose freq_doc satisfies the prior.
     """
     canon_set = set(canonicals)
-    # Pre-sort canonicals by descending length to support longest-match
-    # in rule 1 without re-sorting per iteration.
+    
     sorted_by_len = sorted(canonicals, key=lambda s: -len(s))
 
     parent_map: Dict[str, str] = {}
@@ -178,14 +131,6 @@ def assign_hierarchy(constructs_df: pd.DataFrame) -> pd.DataFrame:
     The input is expected to have the columns produced by
     cluster_constructs: surface_form, canonical_form, cluster_id,
     freq_doc, freq_total, construct_id.
-
-    Behaviour on an empty DataFrame: returns the DataFrame with the
-    three new columns present but empty.
-
-    Behaviour when canonical_form is missing: returns the input
-    unchanged with the three new columns added as defaults (empty
-    parent, depth 0, is_root 1). This permits the function to be a
-    no-op safety net.
     """
     if constructs_df is None or len(constructs_df) == 0:
         out = constructs_df.copy() if constructs_df is not None else pd.DataFrame()
@@ -197,23 +142,13 @@ def assign_hierarchy(constructs_df: pd.DataFrame) -> pd.DataFrame:
     out = constructs_df.copy().reset_index(drop=True)
 
     if "canonical_form" not in out.columns:
-        # Defensive: cluster_constructs guarantees this column, but if
-        # the function is called on an unclustered frame just mark
-        # everything as roots.
         out["parent_canonical"] = ""
         out["hierarchy_depth"] = 0
         out["is_root"] = 1
         return out
 
-    # Build canonical -> doc_freq map. doc_freq is summed across all
-    # rows sharing a canonical_form (because surface variants in one
-    # cluster all contribute to the canonical's document presence).
     out["_canon_norm"] = out["canonical_form"].astype(str).map(_normalise)
-
-    # Aggregate freq_doc per canonical. Use the maximum surface-form
-    # freq_doc within each cluster as the canonical's doc frequency,
-    # which is conservative (does not double-count documents that
-    # contain two surface variants of the same construct).
+    
     canon_freq = (
         out.groupby("_canon_norm", as_index=False)["freq_doc"]
            .max()
@@ -228,10 +163,7 @@ def assign_hierarchy(constructs_df: pd.DataFrame) -> pd.DataFrame:
 
     # Apply rules
     parent_map = _build_parent_map(canonicals, doc_freq)
-
-    # Resolve depth and root status, and pre-compute each canonical's
-    # hierarchy root (used by the Stata graph layer's level(root)
-    # option without requiring a per-row chain walk).
+    
     depth_cache: Dict[str, int] = {}
     root_cache: Dict[str, str] = {}
     for c in canonicals:
@@ -289,12 +221,7 @@ def roll_up_constructs(
                 root (the topmost ancestor).
       An integer N (passed as a string) -- collapse to depth N; for
                 deeper constructs, walk up the parent chain to depth N.
-
-    The function does not aggregate frequencies; the caller is
-    responsible for any post-roll-up groupby. The function exists as a
-    pure mapping step so that visualisation code can choose to display
-    constructs at varying specificity without recomputing the pipeline.
-    """
+   """
     if constructs_df is None or len(constructs_df) == 0:
         return constructs_df
 
@@ -338,7 +265,7 @@ def roll_up_constructs(
         return c
 
     # We need the displayed canonical_form to be in its original case.
-    # Build a normalised -> display map.
+    
     case_map: Dict[str, str] = {}
     for _, row in out.iterrows():
         c_norm = _normalise(row["canonical_form"])

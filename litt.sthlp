@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.4.9  31may2026}{...}
+{* *! version 1.0  15june2026}{...}
 {title:Title}
 
 {phang}
@@ -44,10 +44,10 @@ can then be hand-curated into a formal systematic literature review coding
 scheme.
 
 {pstd}
-The pipeline is: text-kind-appropriate cleaning (v0.3); spaCy noun-chunk
+The pipeline is: text-kind-appropriate cleaning; spaCy noun-chunk
 extraction; sentence-transformer embedding of candidate constructs;
 HDBSCAN clustering into synonym groups; lexical construct-hierarchy
-detection (v0.3); co-occurrence-based relation candidacy with normalized
+detection; co-occurrence-based relation candidacy with normalized
 PMI scoring; dependency-pattern matching for relationship valence.
 
 {pstd}
@@ -420,38 +420,26 @@ should not be reported against the bundled synthetic corpus.
 {pstd}
 The v0.3 construct-hierarchy detector and the {opt textt:ype()} cleaning
 regimes are English-specific. The hierarchy rule does not recover
-conceptual subsumption that lacks lexical signal.
+conceptual subsumption that lacks a lexical signal.
 
 {title:References}
 
 {pstd}
 Bouma, G. (2009). Normalized (pointwise) mutual information in collocation
-extraction. {it:Proceedings of GSCL}, 31-40.
+extraction. {it:Proceedings of GSCL, 30}, 31-40.
 
 {pstd}
 Hearst, M. A. (1992). Automatic acquisition of hyponyms from large text
-corpora. In {it:COLING-92}, 539-545.
+corpora. In {it:Proceedings of COLING-92}, 539-545.
 
 {pstd}
 Hutto, C. J., & Gilbert, E. (2014). VADER: A parsimonious rule-based model
-for sentiment analysis of social media text. {it:ICWSM}, 8(1), 216-225.
+for sentiment analysis of social media text. {it:Proceedings of ICWSM}, 8(1), 216-225.
 
 {pstd}
 Li, J., Larsen, K. R., & Abbasi, A. (2020). TheoryOn: A design framework and
 system for unlocking behavioral knowledge through ontology learning. {it:MIS
 Quarterly}, 44(4), 1733-1772.
-
-{pstd}
-McInnes, L., Healy, J., & Astels, S. (2017). hdbscan: Hierarchical density
-based clustering. {it:Journal of Open Source Software}, 2(11), 205.
-
-{pstd}
-McInnes, L., Healy, J., & Melville, J. (2018). UMAP: Uniform Manifold
-Approximation and Projection. {it:arXiv:1802.03426}.
-
-{pstd}
-Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using
-Siamese BERT-networks. {it:EMNLP-IJCNLP}, 3982-3992.
 
 
 {title:Aliases}

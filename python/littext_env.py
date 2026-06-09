@@ -1,12 +1,4 @@
 """littext_env: verify that required Python packages are installed.
-
-This module is intentionally light. The default check uses importlib.util.find_spec,
-which verifies that a package is INSTALLED without actually importing it. Cold
-imports of sentence_transformers / torch can take 30-90 seconds on Windows; we
-must not pay that cost just to answer the question "is the package available?".
-
-The verbose report DOES import each package (to read its __version__), and this
-is acceptable because the user has asked for verbose output explicitly.
 """
 
 from __future__ import annotations

@@ -1,14 +1,11 @@
 {smcl}
-{* *! version 0.4.9  31may2026}{...}
+{* *! version 1.0  15june2026}{...}
 {title:Title}
 
 {phang}
 {bf:littext} {hline 2} Automated construct discovery and relationship
 inference from an academic text
 
-{pstd}
-The short alias {bf:litt} is provided for interactive use; the two commands
-are functionally identical.
 
 {title:Syntax}
 
@@ -36,18 +33,18 @@ are functionally identical.
 {pstd}
 {bf:littext} extracts candidate construct relationships from an unstructured
 corpus of academic text (titles, abstracts, full texts) or other research
-text such as interview transcripts, consumer reviews, and social-media
+text such as interview transcripts, consumer reviews, and social media
 comments. It is intended for the exploratory researcher who has assembled a
 large corpus and wants to generate candidate relationships of the form
 "X is associated with Y", "X moderates the effect of Z on Y", etc., that
-can then be hand-curated into a formal systematic literature review coding
+can then be hand-curated into a formal, systematic literature review coding
 scheme.
 
 {pstd}
-The pipeline is: text-kind-appropriate cleaning (v0.3); spaCy noun-chunk
+The pipeline is: text-kind-appropriate cleaning; spaCy noun-chunk
 extraction; sentence-transformer embedding of candidate constructs;
 HDBSCAN clustering into synonym groups; lexical construct-hierarchy
-detection (v0.3); co-occurrence-based relation candidacy with normalized
+detection; co-occurrence-based relation candidacy with normalized
 PMI scoring; dependency-pattern matching for relationship valence.
 
 {pstd}
@@ -130,8 +127,8 @@ abstract/other, 500 for fulltext, 30 for transcript, 20 for review,
 
 {phang}
 {opt keepe:mpty} - retain all rows including empty, whitespace-only, and
-below-threshold ones. Default behaviour is to drop these with a logged
-count. Use this when the corpus is being analysed for a purpose that
+below-threshold ones. The default behavior is to drop these with a logged
+count. Use this when the corpus is being analyzed for a purpose that
 requires preserving the input row count.
 
 {phang}
@@ -343,7 +340,7 @@ or roll up at the graph level with:
 
 {title:Examples}
 
-{pstd}Load the bundled synthetic RBV corpus (300 abstracts) and analyse it:{p_end}
+{pstd}Load the bundled synthetic RBV corpus (300 abstracts) and analyze it:{p_end}
 
 {phang}{cmd:. littext example, clear}{p_end}
 {phang}{cmd:. littext analyze, text(abstract) id(article_id) year(year) journal(journal) texttype(abstract)}{p_end}
@@ -426,32 +423,20 @@ conceptual subsumption that lacks lexical signal.
 
 {pstd}
 Bouma, G. (2009). Normalized (pointwise) mutual information in collocation
-extraction. {it:Proceedings of GSCL}, 31-40.
+extraction. {it:Proceedings of GSCL, 30}, 31-40.
 
 {pstd}
 Hearst, M. A. (1992). Automatic acquisition of hyponyms from large text
-corpora. In {it:COLING-92}, 539-545.
+corpora. In {it:Proceedings of COLING-92}, 539-545.
 
 {pstd}
 Hutto, C. J., & Gilbert, E. (2014). VADER: A parsimonious rule-based model
-for sentiment analysis of social media text. {it:ICWSM}, 8(1), 216-225.
+for sentiment analysis of social media text. {it:Proceedings of ICWSM}, 8(1), 216-225.
 
 {pstd}
 Li, J., Larsen, K. R., & Abbasi, A. (2020). TheoryOn: A design framework and
 system for unlocking behavioral knowledge through ontology learning. {it:MIS
 Quarterly}, 44(4), 1733-1772.
-
-{pstd}
-McInnes, L., Healy, J., & Astels, S. (2017). hdbscan: Hierarchical density
-based clustering. {it:Journal of Open Source Software}, 2(11), 205.
-
-{pstd}
-McInnes, L., Healy, J., & Melville, J. (2018). UMAP: Uniform Manifold
-Approximation and Projection. {it:arXiv:1802.03426}.
-
-{pstd}
-Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using
-Siamese BERT-networks. {it:EMNLP-IJCNLP}, 3982-3992.
 
 
 {title:Aliases}

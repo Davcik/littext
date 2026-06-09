@@ -53,7 +53,7 @@ littext example, clear
 littext analyze, text(abstract) id(article_id) year(year) journal(journal) texttype(abstract)
 ```
 
-On the bundled corpus this yields, in round terms, on the order of seven
+On the bundled corpus, this yields, in round terms, on the order of seven
 hundred canonical constructs and several thousand candidate relationships;
 the exact counts vary slightly between runs because the embedding and
 HDBSCAN stages are not fully deterministic. After `analyze` the active
@@ -242,25 +242,25 @@ frame lt_relations: tabstat confidence, by(relation_type) statistics(n mean sd m
 littext graph, type(confidence) outdir("$UC_OUT") saving(uc5_confidence)
 ```
 
-**Interpretation.** The tabulation and distribution figure together
-characterise the relational composition of the corpus. The composition is
+**Interpretation.** The tabulation and distribution figures together
+characterize the relational composition of the corpus. The composition is
 substantively suggestive: a literature dominated by simple positive
 associations, with few moderation or mediation claims, looks
 developmentally different from one with a substantial share of contingency
 and mechanism claims — the former resembling an earlier, descriptive phase
-and the latter a more mature, conditional-theorising phase. The
+and the latter a more mature, conditional-theorizing phase. The
 per-type confidence summary refines this reading by showing not only how
-many relationships of each type were found but how strongly each type is
+many relationships of each type were found, but how strongly each type is
 evidenced: a category that is numerous but uniformly low-confidence
 warrants more curation scrutiny than one that is sparse but strong. Two
 qualifications are essential. First, the observed mix reflects the
 extractor's pattern coverage as much as the field's content — moderation
 and mediation are recovered by syntactic patterns that fire less reliably
 than the simple-association patterns, so a low moderation share is
-partly a measurement artefact and not solely a property of the literature.
+partly a measurement artifact and not solely a property of the literature.
 Second, "theoretical maturity" is an interpretive frame, not a quantity the
 composition measures; the figure is a prompt for that inquiry, not a verdict
-on it. On the synthetic corpus the composition is a property of the
+on it. On the synthetic corpus, the composition is a property of the
 generation process and carries no disciplinary meaning.
 
 ## Workflow 6 — Co-occurrence and thematic structure
@@ -368,12 +368,12 @@ comparison is assembled by the analyst from the per-corpus outputs.
 These seven workflows are not independent analyses to be run in isolation
 but stages of a single research process: mapping the construct landscape
 (1), discovering and registering candidate relationships (2), resolving
-them across the construct hierarchy (3), characterising construct roles (4)
+them across the construct hierarchy (3), characterizing construct roles (4)
 and relational composition (5), surfacing latent thematic structure (6),
 and comparing across segments or, on real data, across domains (7).
 Executed in sequence on a real corpus, they take a researcher from an
 unstructured body of text to a curated, structured hypothesis register and
 a set of figures suitable for the descriptive section of a systematic
 review or a methods paper. Executed on the bundled synthetic corpus, as
-here, they reproduce the entire workflow end to end and document precisely
+here, they reproduce the entire workflow end-to-end and document precisely
 what each command contributes — which is the purpose of this document.

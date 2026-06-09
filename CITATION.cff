@@ -5,8 +5,8 @@ cff-version: 1.2.0
 title: "LITTEXT: Stata module for automated construct and relationship discovery from research text"
 message: "If you use this software, please cite it as below."
 type: software
-version: "0.4.9"
-date-released: "2026-05-29"
+version: "1.0"
+date-released: "2026-06-15"
 license: GPL-3.0-or-later
 repository-code: "https://github.com/Davcik/littext"
 url: "https://github.com/Davcik/littext"

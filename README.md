@@ -44,7 +44,7 @@ the rest are mandatory.
 filesystem and add the directory that contains the `.ado` files to Stata's
 adopath:
 
-    adopath + "D:\path\to\littext\0.4"
+    adopath + "D:\path\to\littext"
 
 **End-user installation from GitHub:**
 
@@ -192,7 +192,7 @@ different constructs; do not treat the second as a measure of the first.
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release history. The current
-release is **v0.4.9**.
+release is **v1.0**.
 
 ---
 

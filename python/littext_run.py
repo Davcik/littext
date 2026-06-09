@@ -1,13 +1,6 @@
 """littext_run: single-entry script invoked by _littext_analyze.ado via `python script`.
 
-This script is the v0.1 solution to a Stata-Python bridge issue: on Stata 19.5
-Windows, many consecutive `python:` (line-mode) calls can put the bridge into
-a state where it stops forwarding output and Stata commands stop responding.
-The fix is to do all Python work in a single bridge crossing, which is what
-`python script` provides.
-
-This file expects the following Stata locals to be set by the calling .ado
-(read via sfi.Macro.getLocal):
+This file expects the following Stata locals to be set by the calling .ado:
   pypath           absolute path to the package's python/ subdirectory
   corpus_dta       path to the temporary .dta written by the calling .ado
   unit             unit of analysis ("sentence", "abstract", or "paragraph")

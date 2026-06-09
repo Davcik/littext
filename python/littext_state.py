@@ -1,8 +1,4 @@
 """littext_state: persist pipeline state to a per-user cache directory.
-
-The graph subcommands re-use the construct embeddings and cluster information.
-Rather than re-running the pipeline, we cache them under the user's temp
-directory.
 """
 
 from __future__ import annotations

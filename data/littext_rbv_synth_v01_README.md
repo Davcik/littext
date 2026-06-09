@@ -1,4 +1,4 @@
-# littext RBV synthetic corpus (v0.1)
+# littext RBV synthetic corpus (v1.0)
 
 Synthetic 300-abstract corpus for testing, demonstration, and worked
 examples in the `littext` Stata package. Themed on the resource-based
@@ -22,7 +22,7 @@ register, length, and dependency patterns of real RBV/dynamic-
 capabilities/absorptive-capacity literature. Author names are
 synthetic; journal names and years are real but the author-to-journal
 attribution is fictitious. The corpus is freely redistributable under
-the same GPL-3.0-or-later licence as the rest of `littext`.
+the same GPL-3.0-or-later license as the rest of `littext`.
 
 ## Schema
 
@@ -150,7 +150,7 @@ academic, commercial, and pedagogical use.
 
 When using this corpus in published work, please cite:
 
-> Davcik, N. S. (2026). *littext: Stata module for automated construct
+> Davcik, N. S. (2026). *LITTEXT: Stata module for automated construct
 > and relationship discovery from research text*,
 > Available at https://github.com/Davcik/littext.
 

@@ -20,10 +20,7 @@ program define _littext_example
     version 19.0
     syntax [, Clear]
     _littext_resolve, subdir(data) name("littext_example.dta")
-    /* Load into the default frame. A prior -littext analyze- leaves
-       lt_relations as the active frame; without this, -littext example-
-       would load the corpus into lt_relations (an output frame), and a
-       subsequent -analyze- would look for text() in the wrong frame. */
+    
     capture frame change default
     use `"`r(path)'"', `clear'
     di as txt "littext: loaded synthetic RBV corpus (300 abstracts; demonstration only)."

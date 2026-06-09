@@ -1,10 +1,7 @@
 /*!
 _littext_install: verify that the Python environment has the required packages.
 
-This command is called by other littext subcommands in quiet mode. The cheap
-path (quiet) only checks installability via importlib.util.find_spec, which
-does NOT actually import the packages. The verbose path additionally imports
-each package to read its version; this is slow on the first call (sentence-
+The verbose path additionally imports each package to read its version; this is slow on the first call (sentence-
 transformers + torch can take 30-90s cold on Windows), and is therefore done
 only when the user explicitly requests it via the verbose option.
 */

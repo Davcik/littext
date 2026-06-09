@@ -1,9 +1,4 @@
 """littext_embed: produce vector embeddings of candidate constructs.
-
-We embed the surface form of each construct (not whole sentences) because the
-downstream task is synonym clustering. Sentence-level embeddings are useful
-for retrieval and may be added in v0.2 if we move to neural relation
-extraction.
 """
 
 from __future__ import annotations

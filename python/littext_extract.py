@@ -1,14 +1,4 @@
 """littext_extract: candidate-construct extraction from text.
-
-Strategy for v0.1:
-  1) Segment the corpus into units of analysis (sentence/paragraph/abstract).
-  2) Run spaCy en_core_web_sm to obtain noun chunks.
-  3) Apply a small set of filters (length, stop-list, POS pattern).
-  4) Return a constructs table and a units table where each row is one
-     (unit, construct) co-occurrence.
-
-This is deliberately a lightweight baseline. A trained domain-specific NER
-model can be plugged in later by replacing _extract_chunks().
 """
 
 from __future__ import annotations
@@ -19,8 +9,7 @@ import pandas as pd
 
 
 # Conservative stop-list of generic academic noun phrases that should not be
-# treated as constructs. Lowercase comparison. Expanded in v0.1.1 based on
-# diagnostic inspection of real Emerald-published marketing abstracts.
+# treated as constructs. Lowercase comparison. 
 _STOP_PHRASES = {
     # Self-references (original v0.1)
     "this paper", "this study", "this article", "the present study",
@@ -35,7 +24,7 @@ _STOP_PHRASES = {
     "the field", "the area", "the topic", "the case", "the example",
     "the purpose", "the aim", "the goal", "the objective", "the question",
     "n =", "p <", "p =", "alpha", "beta", "table", "figure",
-    # v0.1.1: generic academic discourse that surfaced in real abstracts
+    # generic academic discourse that surfaced in real abstracts
     "paper", "study", "studies", "research", "researcher", "researchers",
     "literature", "data", "results", "findings", "evidence", "analysis",
     "author", "authors", "author(s", "implications", "limitations",
@@ -62,17 +51,17 @@ _STOP_PHRASES = {
     "convenience sampling", "convenience sample", "random sample",
     "sample", "samples", "participants", "respondent", "respondents",
     "response", "responses", "sample size",
-    # v0.1.1: publisher / copyright fragments that survive sentence splitting
+    # publisher / copyright fragments that survive sentence splitting
     "elsevier b.v.", "elsevier ltd.", "elsevier ltd", "elsevier",
     "emerald publishing limited", "emerald publishing", "emerald",
     "informa uk limited", "informa uk", "informa", "taylor",
     "francis group", "all rights", "all rights reserved",
     "wiley", "wiley-blackwell", "springer", "springer nature", "sage",
-    # v0.1.1: orphan tokens from "X of Y" chunker failures
+    # orphan tokens from "X of Y" chunker failures
     # ("word of mouth" splits to "word" and "mouth"; treat both as stops
     # so a downstream MWE gazetteer can re-introduce the full phrase)
     "mouth", "turn", "use",
-    # v0.1.2: methodological-discourse phrases that are NOT constructs but
+    # methodological-discourse phrases that are NOT constructs but
     # are descriptions of methodological roles. These phrases continue to
     # function as triggers in the dependency-pattern matcher
     # (littext_relate._find_dep_pattern) - they are excluded from the
@@ -80,13 +69,13 @@ _STOP_PHRASES = {
     "mediating role", "moderating effect", "mediating effect",
     "moderating role", "antecedents", "consequences", "antecedent",
     "consequence", "present study",
-    # v0.1.3: residual hedging / methodological phrases that surfaced at
+    # residual hedging / methodological phrases that surfaced at
     # the top of the confidence ranking on real corpora. "concept" is
     # stop-listed because in this corpus it appears overwhelmingly in
     # "proof of concept" (methodological); "terms" because it appears
     # overwhelmingly in "in terms of" (discourse-marker hedging).
     "concept", "proof of concept", "terms", "manifold ways",
-    # v0.2.8: empirical additions from inspection of v0.2.7 constructs frame
+    # empirical additions from inspection of v0.2.7 constructs frame
     # on a 99-document marketing-research corpus. Categories below.
     #
     # Statistical methods are deliberately RETAINED as constructs (per user
@@ -129,11 +118,7 @@ _STOP_PHRASES = {
     "(cbbe", "cbbe", "(sem", "sem",
 }
 
-# Token-level POS pattern: keep chunks that contain at least one NOUN/PROPN
-# and no auxiliary/determiner-only chunks. (spaCy noun_chunks already filters
-# most degenerate cases; this is a safety net.)
 _KEEP_POS = {"NOUN", "PROPN", "ADJ"}
-
 
 def _load_spacy():
     """Load spaCy with parser + tagger; disable NER for speed (we use chunks)."""
@@ -144,7 +129,7 @@ def _load_spacy():
 def _clean_chunk(text: str) -> str:
     """Normalise a noun-chunk surface form.
 
-    v0.2.8 Fix 3: strip leading/trailing bracket and punctuation characters
+    strip leading/trailing bracket and punctuation characters
     that spaCy's noun-chunker sometimes retains as part of the chunk. The
     most common case in real corpora is parenthetical glosses where the
     opening "(" is absorbed into the following token (e.g. "(cbbe" as a
