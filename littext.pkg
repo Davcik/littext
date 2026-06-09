@@ -5,7 +5,7 @@
 *     net install littext
 *
 * Comment lines begin with an asterisk in column 1; no other comment
-* syntax is recognised by the manifest grammar.
+* syntax is recognized by the manifest grammar.
 *
 * File-declaration directives:
 *
@@ -36,11 +36,11 @@ d of academic text (titles, abstracts, full texts). It produces three
 d Stata frames -- lt_constructs, lt_relations, lt_diag -- holding the
 d extracted constructs, candidate relationships with confidence scores
 d and evidence sentences, and per-document diagnostics. A companion
-d {bf:littext graph} command produces ten visualisation types (five
+d {bf:littext graph} command produces ten visualization types (five
 d Stata-native, five matplotlib).
 d
 d The pipeline combines spaCy noun-chunk extraction, sentence-
-d transformer embeddings, HDBSCAN synonym clustering, normalised
+d transformer embeddings, HDBSCAN synonym clustering, normalized
 d pointwise mutual information for relationship candidacy, and a
 d six-pattern dependency-arc matcher for relationship valence.
 d
@@ -55,10 +55,10 @@ d Author: Nebojsa S. Davcik, EM Normandie Business School
 d Support: davcik@live.com
 d ORCID: 0000-0003-1041-8788
 d
-d Distribution-Date: 20260531
+d Distribution-Date: 20260615
 d
 * ----------------------------------------------------------------------
-* Top-level Stata files: dispatchers, subcommand handlers, help, alias.
+* Top-level Stata files: dispatchers, subcommand handlers, help, and alias.
 * Installed by suffix (.ado, .sthlp), so lowercase f is correct here.
 * ----------------------------------------------------------------------
 f littext.ado
@@ -75,9 +75,7 @@ f _littext_resolve.ado
 * ----------------------------------------------------------------------
 * Python pipeline. Force-installed (F) so a default net install places
 * them on the adopath where findfile can locate them. Filenames are
-* case-sensitive. littext_cleaners.py (v0.3.3) and littext_hierarchy.py
-* (v0.3.2) were absent from the pre-0.4.1 manifest and would not have
-* been installed.
+* case-sensitive. 
 * ----------------------------------------------------------------------
 F python/__init__.py
 F python/littext_env.py
