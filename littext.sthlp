@@ -322,7 +322,7 @@ not link {it:brand reputation} to {it:brand equity} because they
 share no right substring).
 
 {pstd}
-{bf:Example hierarchies the rule recovers.} For insatnce, if a corpus contains
+{bf:Example hierarchies the rule recovers.} For instance, if a corpus contains
 {it:brand equity} and any of {it:consumer-based brand equity},
 {it:financial-based brand equity}, {it:online brand equity}, or
 {it:employee-based brand equity}, the rule places each subtype as a
