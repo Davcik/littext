@@ -58,7 +58,7 @@ Results are returned in three Stata frames left in memory:
 {p 8 12 2}{bf:lt_diag}        -  one row per source document with diagnostics{p_end}
 
 {pstd}
-After {bf:littext analyze} returns, you remain in the frame you called it
+After {bf:littext analyze} returns, a user remains in the frame it called
 from; the results are in the named frames {bf:lt_constructs},
 {bf:lt_relations}, and {bf:lt_diag}, queried with a frame prefix, e.g.
 {cmd:frame lt_relations: list source target relation_type confidence}.
@@ -109,8 +109,7 @@ paragraph for fulltext.
 
 {phang}
 {opt emb:edmodel(string)} - name of the sentence-transformers model used for
-construct embeddings. Default {bf:all-MiniLM-L6-v2}. For scholarly text the
-preferred alternative is {bf:allenai/specter2}.
+construct embeddings.
 
 {phang}
 {opt minf:req(#)} - minimum document frequency for a candidate construct to
@@ -255,9 +254,7 @@ descending confidence (default: keep all).
 
 {phang}
 {opt col:umns(string)} - space-separated list of {bf:lt_relations} columns
-to export, overriding the default essentials-plus-provenance set
-({bf:source target relation_type confidence evidence_text extraction_method
-doc_id}). Unknown columns are skipped with a note.
+to export. Unknown columns are skipped with a note.
 
 {title:Stata frames produced}
 
@@ -328,7 +325,7 @@ not link {it:brand reputation} to {it:brand equity} because they
 share no right substring).
 
 {pstd}
-{bf:Example hierarchies the rule recovers.} If a corpus contains
+{bf:Example hierarchies the rule recovers.} For instance, if a corpus contains
 {it:brand equity} and any of {it:consumer-based brand equity},
 {it:financial-based brand equity}, {it:online brand equity}, or
 {it:employee-based brand equity}, the rule places each subtype as a
