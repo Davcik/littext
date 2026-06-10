@@ -487,5 +487,5 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 {title:Also see}
 
-{phang}Short-form alias: {helpb litt}{p_end}
+{phang}The command: {helpb littext}{p_end}
 
