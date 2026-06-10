@@ -7,7 +7,7 @@ from a corpus of text (titles, abstracts, full texts). Its intended
 user is the scholar who has assembled an unstructured
 corpus and wants to generate candidate relationships of the form
 "X is associated with Y", "X moderates the effect of Z on Y", etc., that can
-later be hand-curated into a formal systematic-literature-review coding
+later be hand-curated into a formal systematic literature review coding
 scheme.
 
 `litdiscover` is a sister package supporting systematic literature reviews
@@ -26,9 +26,7 @@ manual coding.
     python set exec "C:\path\to\python.exe"
     python query
 
-Python 3.14 is recommended on Windows. On Python 3.14, ensure your
-spaCy install resolves a `blis` wheel (blis 1.3.3 or later provides cp314
-wheels on PyPI).
+Python 3.14 is recommended on Windows. 
 
 Install the required Python packages into the environment Stata is bound to:
 
@@ -51,6 +49,30 @@ adopath:
     net from "https://raw.githubusercontent.com/Davcik/littext/main/"
     net describe littext
     net install littext
+
+**End-user installation from GitHub — single-archive fallback.**
+On some managed or institutional networks, a TLS-inspecting firewall or
+security proxy resets connections during the rapid sequence of per-file
+requests that `net install` issues from a raw GitHub source. The symptom
+is an intermittent `r(603)` ("could not copy ...") that lands on a
+*different* file on each attempt, even though every file is present and
+individually reachable. The package is not at fault in this case; the
+network link is dropping one request out of the burst. When this occurs,
+retrieve the entire package in a single request and install from the
+extracted folder:
+
+1. Download the repository archive (a single request) and save it locally:
+   `https://github.com/Davcik/littext/archive/refs/heads/main.zip`
+2. Extract it. This yields a folder `littext-main` containing `stata.toc`,
+   `littext.pkg`, and the complete package tree.
+3. Install from that folder:
+
+       net from "C:\path\to\littext-main"
+       net install littext, replace
+
+The installed result is identical to a successful network `net install`;
+only the transport differs (one archive fetch in place of roughly thirty
+per-file fetches).
 
 **End-user installation from SSC (after SSC submission):**
 
@@ -126,7 +148,7 @@ files. Example: `littext graph, type(network) outdir("D:/figs") format(html)`.
     ├── litt.sthlp                 Alias help (copy of littext.sthlp)
     ├── _littext_install.ado       Python-environment check / installer
     ├── _littext_analyze.ado       Main analysis driver
-    ├── _littext_graph.ado         Visualisation dispatcher
+    ├── _littext_graph.ado 	   Visualization dispatcher
     ├── _littext_export.ado        Hypothesis-register export
     ├── _littext_example.ado       Example-data loader
     ├── littext.pkg                net install manifest
@@ -149,11 +171,11 @@ files. Example: `littext graph, type(network) outdir("D:/figs") format(html)`.
     │   ├── littext_io.py          Stata-frame I/O
     │   ├── littext_state.py       Run-state helpers (inferred from name)
     │   └── littext_viz.py         matplotlib figures
-    ├── data/                      Synthetic corpus
-    │   ├── littext_example.dta         300 abstracts (loaded by littext example)
-    │   └── littext_rbv_synth_v01_README.md   schema and provenance
-    └── usecases/                  Worked research workflows
-        └── USECASES.md                 narrative walkthrough of seven workflows
+    ├── data/                      		Synthetic corpus
+    │   ├── littext_example.dta         	300 abstracts (loaded by littext example)
+    │   └── littext_rbv_synth_v01_README.md     schema and provenance
+    └── usecases/                  		Worked research workflows
+        └── USECASES.md                 	narrative walkthrough of seven workflows
 
 ## Synthetic corpus
 
@@ -165,7 +187,7 @@ bibliometric resource; its purpose is end-to-end testing, example
 illustration, and submission demonstration.
 
 The bundled example is wired to `littext_example.dta` (300 abstracts).
-Load and analyse it with:
+Load and analyze it with:
 
     littext example, clear
     littext analyze, text(abstract) id(article_id) year(year) journal(journal)
@@ -178,7 +200,7 @@ The relation types the extractor can emit are `pos_assoc`, `neg_assoc`,
 `littext` uses noun-chunk extraction (via spaCy `en_core_web_sm`),
 sentence-transformer embeddings (default `all-MiniLM-L6-v2`; the
 `allenai/specter2` model is preferable for scholarly text), HDBSCAN synonym
-clustering, normalised pointwise mutual information for the relationship
+clustering, normalized pointwise mutual information for the relationship
 candidacy, and a small dependency-pattern lexicon for relationship valence.
 
 The package distinguishes between **relationship valence** (positive,

@@ -4,7 +4,7 @@ All notable changes to `littext` are recorded here. This is a summary for
 users; the format follows [Keep a Changelog](https://keepachangelog.com/)
 and the project uses [Semantic Versioning](https://semver.org/).
 
-## [0.4.9] - 2026-05-31
+## [1.0] - 2026-06-15
 
 First public release.
 
@@ -42,5 +42,5 @@ curatable hypothesis-register export.
 
 ---
 
-A detailed development history (the v0.1–v0.4 iteration log, with
+A detailed development history (the v0.1.*–v0.4.* iteration log, with
 design-decision rationale) is maintained separately by the author.
