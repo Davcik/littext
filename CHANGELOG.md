@@ -42,5 +42,5 @@ curatable hypothesis-register export.
 
 ---
 
-A detailed development history (the v0.1.*–v0.4.* iteration log, with
+A detailed development history (the v0.1*–v0.4* iteration log, with
 design-decision rationale) is maintained separately by the author.
