@@ -180,7 +180,7 @@ edge strength matters more than syntactic type.
 types. Accepts {bf:leaf} (default; constructs at maximum specificity),
 {bf:root} (each construct replaced by its hierarchy root), or a
 non-negative integer N (collapse to depth N). Honoured by
-{bf:type(frequency)} and, since v0.4.5, by the matplotlib {bf:type(map)}
+{bf:type(frequency)} and by the matplotlib {bf:type(map)}
 and {bf:type(network)} renderers. In {bf:map} a rolled construct is drawn
 at the frequency-weighted centroid of its children. In {bf:network} edges
 are aggregated within each relation type but never across types: a
@@ -238,7 +238,7 @@ warning.
 
 {phang}
 {opt format(string)} - output format: {bf:csv} (default), {bf:xlsx}, or
-{bf:both}. CSV is written with full quoting so evidence spans containing
+{bf:both}. CSV is written with full quoting, so evidence spans containing
 commas or quotes survive intact.
 
 {phang}
@@ -293,7 +293,7 @@ n_relations_extracted.
 {title:Notes}
 
 {pstd}
-{bf:v0.3 row-drop behaviour.} By default, {cmd:littext analyze} drops rows
+{bf:row-drop behavior.} By default, {cmd:littext analyze} drops rows
 where the {opt t:ext()} variable is missing or whitespace-only, rows where
 a user-supplied {opt i:d()} variable is missing, and rows whose text is
 shorter than {opt mint:extlen()} characters. A summary of the drops is
@@ -302,7 +302,7 @@ than 25% of input rows are dropped, which most often indicates that the
 {opt t:ext()} variable points at the wrong column.
 
 {pstd}
-{bf:v0.3 text-kind declaration.} The {opt textt:ype()} option drives
+{bf:text-kind declaration.} The {opt textt:ype()} option drives
 three downstream defaults: which cleaning regime is applied to the raw
 text; the default segmentation {opt u:nit()}; and the default
 {opt mint:extlen()}. Each derived default is overridable by passing the
@@ -312,7 +312,7 @@ A post-clean median-length sanity check warns when the corpus length
 falls outside the typical window for the declared texttype.
 
 {pstd}
-{bf:v0.3 construct hierarchy.} Four new columns are added to
+{bf:construct hierarchy.} Four new columns are added to
 {bf:lt_constructs}: {bf:parent_canonical} (the canonical form of the
 immediate IS-A parent, or empty if the construct is a root),
 {bf:canonical_root} (the topmost ancestor; equals {bf:canonical_form}
@@ -323,7 +323,7 @@ supplemented by a hyphenated-prefix rule that admits constructs of the
 form {it:X-based Parent}, {it:X-driven Parent}, {it:X-led Parent}, and
 {it:X-oriented Parent} as children of {it:Parent} regardless of the
 frequency prior. The rule is English-specific and is silent on
-conceptually-subsumed but lexically-distinct relations (e.g. it does
+conceptually-subsumed but lexically-distinct relations (e.g., it does
 not link {it:brand reputation} to {it:brand equity} because they
 share no right substring).
 
@@ -343,7 +343,7 @@ or roll up at the graph level with:
 
 {title:Examples}
 
-{pstd}Load the bundled synthetic RBV corpus (300 abstracts) and analyse it:{p_end}
+{pstd}Load the bundled synthetic RBV corpus (300 abstracts) and analyze it:{p_end}
 
 {phang}{cmd:. littext example, clear}{p_end}
 {phang}{cmd:. littext analyze, text(abstract) id(article_id) year(year) journal(journal) texttype(abstract)}{p_end}
@@ -378,7 +378,7 @@ or roll up at the graph level with:
 
 {pstd}
 {bf:littext} draws a clear line between two distinct constructs that are often
-conflated in marketing applications:
+conflated in social sciences/marketing/management applications:
 
 {phang}
 1. {it:Relationship valence} is the sign of the directional relationship
@@ -418,7 +418,7 @@ being treated as a coding scheme. Quantitative precision/recall figures
 should not be reported against the bundled synthetic corpus.
 
 {pstd}
-The v0.3 construct-hierarchy detector and the {opt textt:ype()} cleaning
+The construct-hierarchy detector and the {opt textt:ype()} cleaning
 regimes are English-specific. The hierarchy rule does not recover
 conceptual subsumption that lacks a lexical signal.
 
