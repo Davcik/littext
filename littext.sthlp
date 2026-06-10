@@ -290,7 +290,7 @@ n_relations_extracted.
 {title:Notes}
 
 {pstd}
-{bf:v0.3 row-drop behaviour.} By default, {cmd:littext analyze} drops rows
+{bf:row-drop behaviour.} By default, {cmd:littext analyze} drops rows
 where the {opt t:ext()} variable is missing or whitespace-only, rows where
 a user-supplied {opt i:d()} variable is missing, and rows whose text is
 shorter than {opt mint:extlen()} characters. A summary of the drops is
@@ -299,7 +299,7 @@ than 25% of input rows are dropped, which most often indicates that the
 {opt t:ext()} variable points at the wrong column.
 
 {pstd}
-{bf:v0.3 text-kind declaration.} The {opt textt:ype()} option drives
+{bf:text-kind declaration.} The {opt textt:ype()} option drives
 three downstream defaults: which cleaning regime is applied to the raw
 text; the default segmentation {opt u:nit()}; and the default
 {opt mint:extlen()}. Each derived default is overridable by passing the
@@ -309,7 +309,7 @@ A post-clean median-length sanity check warns when the corpus length
 falls outside the typical window for the declared texttype.
 
 {pstd}
-{bf:v0.3 construct hierarchy.} Four new columns are added to
+{bf:construct hierarchy.} Four new columns are added to
 {bf:lt_constructs}: {bf:parent_canonical} (the canonical form of the
 immediate IS-A parent, or empty if the construct is a root),
 {bf:canonical_root} (the topmost ancestor; equals {bf:canonical_form}
@@ -417,7 +417,7 @@ should not be reported against the bundled synthetic corpus.
 {pstd}
 The v0.3 construct-hierarchy detector and the {opt textt:ype()} cleaning
 regimes are English-specific. The hierarchy rule does not recover
-conceptual subsumption that lacks lexical signal.
+conceptual subsumption that lacks a lexical signal.
 
 {title:References}
 
