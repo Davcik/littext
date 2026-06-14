@@ -164,13 +164,7 @@ program define _littext_analyze, eclass
     keep `id' `text' `year' `journal'
     rename `text' lt_text
     rename `id' lt_id
-   
-       Drops in this order (each is logged if any rows are removed):
-         (1) rows where lt_text is missing or empty/whitespace-only;
-         (2) rows where lt_id is missing (only if id() was user-supplied;
-             auto-generated ids are always present by construction);
-         (3) rows shorter than mintextlen characters.
-       Skipped entirely if keepempty is set. */
+
     if !`keepempty_flag' {
         local n_before = _N
         /* (1) Drop empty/whitespace-only text */
