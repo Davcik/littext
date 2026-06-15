@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib
+import importlib.metadata
 import importlib.util
 import sys
 from typing import Tuple
@@ -32,14 +33,28 @@ def _is_installed(modname: str) -> bool:
         return False
 
 
-def _import_for_version(modname: str) -> Tuple[bool, str]:
-    """Full import to read the version string. Use ONLY in verbose mode."""
+def _import_for_version(modname: str, dist: str = "") -> Tuple[bool, str]:
+    """Full import to read the version string. Use ONLY in verbose mode.
+
+    Most packages expose __version__. Some (notably hdbscan) do not, so when
+    __version__ is absent fall back to the installed-distribution metadata,
+    trying the import name and then the distribution display name (these
+    differ for, e.g., sklearn / scikit-learn and umap / umap-learn)."""
     try:
         mod = importlib.import_module(modname)
-        ver = getattr(mod, "__version__", "?")
-        return True, ver
     except Exception as exc:
         return False, str(exc).splitlines()[0][:120]
+    ver = getattr(mod, "__version__", None)
+    if not ver:
+        for name in (modname, dist):
+            if not name:
+                continue
+            try:
+                ver = importlib.metadata.version(name)
+                break
+            except Exception:
+                ver = None
+    return True, ver if ver else "?"
 
 
 def _spacy_model_present(model_name: str = "en_core_web_sm") -> bool:
@@ -56,7 +71,7 @@ def report_environment(verbose: bool = False) -> None:
         print(f"  sys.path[0:3]: {sys.path[:3]}", flush=True)
     for modname, display, hint, _required in REQUIRED:
         if verbose:
-            ok, info = _import_for_version(modname)
+            ok, info = _import_for_version(modname, display)
             mark = "OK " if ok else "-- "
             if ok:
                 print(f"  [{mark}] {display:24s} {info}", flush=True)
