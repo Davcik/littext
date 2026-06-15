@@ -4,7 +4,7 @@ All notable changes to `littext` are recorded here. This is a summary for
 users; the format follows [Keep a Changelog](https://keepachangelog.com/)
 and the project uses [Semantic Versioning](https://semver.org/).
 
-## [1.0] - 2026-06-15
+## [1.0.0] - 2026-06-15
 
 First public release.
 
