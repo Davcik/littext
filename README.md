@@ -214,7 +214,7 @@ different constructs; do not treat the second as a measure of the first.
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release history. The current
-release is **v1.0**.
+release is **v1.0.0**.
 
 ---
 
