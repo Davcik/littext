@@ -401,6 +401,16 @@ scikit-learn, umap-learn, matplotlib, networkx, plotly, pandas, numpy. The spaCy
 model {bf:en_core_web_sm} must be downloaded once via
 {cmd:python -m spacy download en_core_web_sm}.
 
+{pstd}
+On its first run, {bf:littext analyze} downloads the default
+sentence-transformer embedding model ({bf:all-MiniLM-L6-v2}, about
+90 MB) from the Hugging Face Hub. Inside Stata's Python bridge this
+download prints no progress, so a first run on a new machine can
+appear to hang during the pipeline stage. {bf:littext install} reports
+whether the model is cached and, when it is not, prints the exact
+command to fetch it once at the command prompt, where progress is
+visible; later runs then load it from the local cache with no network.
+
 {title:Limitations}
 
 {pstd}
