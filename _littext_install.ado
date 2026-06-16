@@ -50,10 +50,10 @@ program define _littext_install
     /* Default embedding-model cache check.
        The first -littext analyze- on a fresh machine downloads the default
        sentence-transformer model (~90 MB) from the Hugging Face Hub. Inside
-       Stata's Python bridge that download prints no progress, so an uncached
+       Stata's Python bridge downloads and prints no progress, so an uncached
        first run appears to hang at stage 5 for 1-2 minutes. Detect the cache
        here, without importing torch and without triggering a download, and
-       if the model is absent direct the user to fetch it at the Windows
+       if the model is absent, direct the user to fetch it at the Windows
        command prompt where progress is visible. A missing cache is a
        heads-up, not an error; the package still runs. Users who pass a
        non-default embedmodel() should cache that model instead. */

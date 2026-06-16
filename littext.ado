@@ -2,7 +2,7 @@
     littext -- automated construct discovery and relationship inference from academic text
     Copyright (C) 2026  Nebojsa S. Davcik
 
-    This program is free software: you can redistribute it and/or modify it
+    This program is free software: it can be redistributed and/or modified
     under the terms of the GNU General Public License as published by the Free
     Software Foundation, either version 3 of the License, or (at your option)
     any later version. See the LICENSE file or <https://www.gnu.org/licenses/>.
@@ -14,7 +14,7 @@
     "X moderates Z on Y", etc. See CHANGELOG.md for the full release history.
 */
 
-*! version 1.0  15june2026  littext: automated construct discovery from academic text
+*! version 1.0  17june2026  littext: automated construct discovery from academic text
 *! Author: Nebojsa S. Davcik
 *! License: GPL-3.0-or-later
 

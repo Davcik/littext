@@ -12,7 +12,7 @@
 *     net install littext
 *
 * If the package files live in a versioned subdirectory of the repository
-* (for example "1.0/"), point net from at that subdirectory instead.
+* (for example "1.0/"), point net from that subdirectory instead.
 *
 v 3
 d littext: automated construct discovery and relationship inference from academic text

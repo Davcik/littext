@@ -6,18 +6,18 @@ Types:
   distribution  stacked bar of relationship-type distribution        (Stata)
   trend         construct frequency over publication year            (Stata)
   confidence    histogram of relationship confidence scores          (Stata)
-  extraction    bar of relations by extraction method                (Stata; v0.2.7)
+  extraction    bar of relations by the extraction method            (Stata)
   map           UMAP concept map of construct embeddings             (matplotlib)
   network       force-directed relationship network                  (matplotlib)
   dendrogram    construct-cluster dendrogram                         (matplotlib)
-  cooccurrence  pairwise NPMI heatmap of top-k constructs            (matplotlib; v0.2.7)
-  roles         construct x relation-type heatmap                    (matplotlib; v0.2.7)
+  cooccurrence  pairwise NPMI heatmap of top-k constructs            (matplotlib)
+  roles         construct x relation-type heatmap                    (matplotlib)
 
 Options:
   top(#)        for heatmaps, the top-k constructs (by frequency) included
   outdir(path)  absolute path for output (REQUIRED; no default)
-  weighted      for type(network): colour edges by confidence rather than by
-                relation type (v0.2.7)
+  weighted      for type(network): color edges by confidence rather than by
+                relation type
   saving(stub)  file stub (default: littext_<type>)
   replace       overwrite existing files
 */
