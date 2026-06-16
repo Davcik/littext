@@ -9,11 +9,11 @@ Nebojsa S. Davcik · EM Normandie Business School
 
 `littext` performs automated construct discovery and relationship inference
 from corpora of academic text. A single `littext analyze` call reads a
-frame of documents, extracts theoretical constructs as normalised
+frame of documents, extracts theoretical constructs as normalized
 noun-chunks, clusters synonymous surface forms via sentence-transformer
 embeddings and HDBSCAN, infers a lexical IS-A hierarchy over the resulting
 canonical constructs, and scores candidate inter-construct relationships
-using a six-pattern dependency-arc matcher together with a normalised
+using a six-pattern dependency-arc matcher together with a normalized
 point-wise-mutual-information co-occurrence baseline. The results are
 returned in three Stata frames — `lt_constructs`, `lt_relations`, and
 `lt_diag` — which subsequent commands (`littext graph`, `littext export`)
@@ -21,14 +21,14 @@ consume.
 
 This document presents seven research workflows the package supports. Each
 is stated as a research question, followed by the Stata script that
-addresses it and an interpretation of the output. The scripts are also
+addresses it and provides an interpretation of the output. The scripts are also
 provided as standalone, runnable `.do` files (`uc1`–`uc7`), each preceded
 by the shared `uc0_setup.do`.
 
 ### A standing caveat on the data
 
 Every workflow below runs on the corpus bundled with the package: 300
-synthetic abstracts constructed to embed known resource-based-view (RBV)
+synthetic abstracts constructed to embed the known resource-based-view (RBV)
 constructs and relationships. This corpus makes the document fully
 reproducible — any reader can execute every script and obtain the figures
 and tables discussed — but it is not a real bibliometric sample. Its
@@ -87,22 +87,20 @@ construct appears) and `freq_total` (total mentions) matters
 analytically — a construct with high total frequency but low document
 frequency is concentrated in a few intensive treatments, whereas one with
 high document frequency is diffuse across the field; the two profiles
-imply different roles in a literature. The concept map situates the
+imply different roles in literature. The concept map situates the
 constructs in a two-dimensional projection of their embedding space, so
 that lexically distinct but semantically proximate constructs appear near
-one another; its interactive (HTML) form is the more useful of the two
+one another. Its interactive (HTML) form is the more useful of the two
 outputs here, because hovering resolves the labels that overlap illegibly
 in a dense static scatter. The count of distinct canonical forms is a
-summary measure of vocabulary breadth: read against the raw number of
+summary measure of vocabulary breadth. It reads against the raw number of
 extracted noun-chunks, it indexes how much synonymy the clustering stage
-absorbed. On real data this workflow is the natural opening description of
-a field; on the synthetic corpus it should be read as a demonstration of
-that description rather than as a map of the actual RBV literature.
+absorbed. 
 
 ## Workflow 2 — Relationship discovery and hypothesis-register generation
 
 **Research question.** What candidate relationships between constructs does
-the corpus assert, at what confidence, and how can they be handed to a
+the corpus asserts, at what confidence, and how can they be handed to a
 human coder as a curatable hypothesis register?
 
 **Script.**
@@ -117,26 +115,17 @@ littext export, outdir("$UC_OUT") name(uc2_register_triage) format(csv) minconf(
 littext export, outdir("$UC_OUT") name(uc2_register_modmed) format(csv) type(moderates mediates)
 ```
 
-**Interpretation.** This is the workflow for which `littext` was designed:
-it converts an unstructured corpus into a structured register of candidate
+**Interpretation.** This is the workflow for which `littext` was designed.
+It converts an unstructured corpus into a structured register of candidate
 relationships that a researcher can curate into a formal coding scheme.
-The full export is exhaustive and therefore unwieldy; the value of the
-command lies in the filtered registers. The triage register — directional
-associations only, confidence at or above 0.7, capped at the 150 strongest
-— is the set a coder would review first, ordered so that the most strongly
+The full export is exhaustive and therefore unwieldy, and the value of the
+command lies in the filtered registers. The triage register (directional
+associations only, confidence at or above 0.7, capped at the 150 strongest) 
+is the set a coder would review first, ordered so that the most strongly
 evidenced candidates appear at the top. The moderation/mediation register
 isolates the contingency and mechanism claims, which are of particular
 interest because they correspond to the hypotheses that most often
-structure a theoretical contribution. Two cautions govern interpretation.
-First, `confidence` is the extractor's internal score, reflecting pattern
-strength and co-occurrence; it is not a probability that the relationship
-is true, and a curator must still adjudicate each candidate against the
-source text, for which the exported `evidence_text` column is provided.
-Second, the register is a generative aid: its purpose is recall (surfacing
-candidates a manual reader might miss), not precision, and it should be
-used to widen the hypothesis space before narrowing it, not as a substitute
-for the narrowing.
-
+structure a theoretical contribution. 
 ---
 
 ## Workflow 3 — Construct-hierarchy analysis
@@ -161,25 +150,15 @@ littext graph, type(map) top(40) level(1) outdir("$UC_OUT") saving(uc3_map_level
 lexically: a construct whose canonical form is a right-substring of, or a
 hyphenated specialisation of, another is treated as that other's subtype.
 Listing the non-root constructs with their parents exposes this structure
-for inspection — it is the first thing to audit, because a spurious parent
+for inspection, and it is the first thing to audit, because a spurious parent
 assignment will propagate into the rolled-up figures. The pair of network
 figures is the analytical core of the workflow: the leaf-level network
 shows every construct as its own node, while the root-level network
 collapses each subtype into its parent and re-aggregates the edges. The
-edge aggregation is deliberate and worth understanding: parallel edges
+edge aggregation is deliberate and worth understanding because parallel edges
 between a rolled pair are summed *within* a relation type but never merged
 *across* types, so a positive and a negative association between the same
 parent pair remain two distinct edges rather than cancelling or conflating.
-Comparing the two networks answers the research question directly — it
-shows which relationships are properties of specific subtypes and which
-survive aggregation to the parent level. The magnitude of the change is
-itself informative: a corpus rich in lexical specialisations will show a
-pronounced simplification at the root level, whereas a flat vocabulary will
-change little, and that is a fact about the field's terminological
-structure rather than a limitation of the method. For a scholar whose work
-concerns a construct family with well-developed subtypes, this is the
-workflow that distinguishes claims about the family from claims about its
-members.
 
 ## Workflow 4 — Antecedent and consequent role structure
 
@@ -214,17 +193,8 @@ field's theories; one that is predominantly a target reads as an outcome;
 one concentrated in the moderation column functions as a boundary
 condition. The two supplementary tabulations reconstruct the heatmap's
 underlying counts on the source and target sides separately, so the figure
-can be read against exact numbers — necessary because a heatmap communicates
-pattern but not precise magnitude. The analytical payoff is a first,
-data-driven sketch of the nomological structure of a literature: which
-constructs the field treats as causes, which as effects, and which as
-contingencies. The interpretive caution is that these roles are assigned by
-the directionality the extractor recovered from sentence syntax, which is
-reliable for simple constructions and progressively less so for the long
-coordinated sentences characteristic of dense theoretical prose; a
-construct's apparent role should therefore be corroborated against the
-evidence spans before it is reported.
-
+can be read against exact numbers. It is necessary because a heatmap communicates
+pattern but not precise magnitude. 
 ---
 
 ## Workflow 5 — Relationship-type composition
@@ -244,24 +214,15 @@ littext graph, type(confidence) outdir("$UC_OUT") saving(uc5_confidence)
 
 **Interpretation.** The tabulation and distribution figures together
 characterize the relational composition of the corpus. The composition is
-substantively suggestive: a literature dominated by simple positive
+substantively suggestive. A literature is dominated by simple positive
 associations, with few moderation or mediation claims, looks
 developmentally different from one with a substantial share of contingency
-and mechanism claims — the former resembling an earlier, descriptive phase
+and mechanism claims, and the former resembles an earlier, descriptive phase
 and the latter a more mature, conditional-theorizing phase. The
 per-type confidence summary refines this reading by showing not only how
 many relationships of each type were found, but how strongly each type is
-evidenced: a category that is numerous but uniformly low-confidence
-warrants more curation scrutiny than one that is sparse but strong. Two
-qualifications are essential. First, the observed mix reflects the
-extractor's pattern coverage as much as the field's content — moderation
-and mediation are recovered by syntactic patterns that fire less reliably
-than the simple-association patterns, so a low moderation share is
-partly a measurement artifact and not solely a property of the literature.
-Second, "theoretical maturity" is an interpretive frame, not a quantity the
-composition measures; the figure is a prompt for that inquiry, not a verdict
-on it. On the synthetic corpus, the composition is a property of the
-generation process and carries no disciplinary meaning.
+evidenced, which is a category that is numerous but uniformly low-confidence
+warrants more curation scrutiny than one that is sparse but strong. 
 
 ## Workflow 6 — Co-occurrence and thematic structure
 
@@ -285,37 +246,18 @@ frame drop _uc6
 **Interpretation.** Where the network workflow (3) and the role workflow
 (4) concern *asserted, directed* relationships, this workflow concerns
 *undirected association* — the tendency of constructs to appear together
-irrespective of whether the text states a relationship between them. The
-heatmap is built on normalised point-wise mutual information, which
-corrects raw co-occurrence for the base rates of the individual
-constructs, so that a high cell reflects genuine thematic affinity rather
-than the mere prominence of two frequent terms. This surfaces latent
-thematic structure: clusters of constructs that travel together in the
-literature and may constitute an implicit research stream even absent an
-explicit theoretical link. The interactive form is materially better here
-than the static one, because a co-occurrence matrix is dense and the exact
-pair values are legible only on hover. Analytically, the co-occurrence
-view complements the relationship view: a pair that co-occurs strongly but
-has no asserted relationship is a candidate gap — two constructs the field
-discusses together but has not yet theorised a link between — which is
-precisely the kind of opening a contribution can exploit.
-
+irrespective of whether the text states a relationship between them. This surfaces latent
+thematic structure because clusters of constructs that travel together in the
+literature and may constitute an implicit research stream even in the absence of an
+explicit theoretical link. 
 ---
 
 ## Workflow 7 — Temporal and cross-segment comparison (illustrative)
 
-**Research question.** How does the extraction profile — constructs and
-relationships per document — differ across publication years and across
+**Research question.** How does the extraction profile (constructs and
+relationships per document) differ across publication years and across
 journals; and, by extension, how would one compare the construct and
 relationship profiles of two different research domains?
-
-**A necessary caveat, stated before the script.** The bundled corpus is
-synthetic and single-domain (resource-based view). A genuine *cross-domain*
-comparison cannot be demonstrated on it. The year and journal cuts below
-are *within* one synthetic domain; they exist to show the *mechanics* of a
-comparative analysis, not to support any substantive comparative claim. The
-script's final block sketches, in comments, how the identical workflow
-extends to two real corpora.
 
 **Script.**
 
@@ -338,29 +280,16 @@ frame drop _uc7
 ```
 
 **Interpretation.** The `lt_diag` frame records, per document, the year,
-the journal, and the number of constructs and relationships extracted; it
+the journal, and the number of constructs and relationships extracted, and it
 is therefore the natural basis for any segmented comparison. The trend
-figure and the by-year collapse show how extraction yield moves over time,
+figure and the by-year collapse show how the extraction yield moves over time,
 and the by-journal collapse shows how it varies across outlets. On real
-data these cuts are genuinely informative: a rising construct-per-document
+data, these cuts are genuinely informative because a rising construct-per-document
 yield over time can index a field's increasing conceptual density, and
 systematic between-journal differences can reflect editorial scope or
 abstract-writing conventions. On the synthetic corpus, however, year and
 journal are generated attributes with no such meaning, so the numbers here
 demonstrate only that the segmentation runs and produces sensible tables.
-
-The genuine *cross-domain* application — comparing, say, a marketing
-corpus with a strategy corpus — follows the same logic but requires two
-real corpora analysed separately. The procedure is two `analyze` runs into
-separate output sets, each exported and its construct table saved, followed
-by an offline comparison of the two vocabularies (shared versus
-domain-specific constructs) and their relation-type mixes. The
-accompanying `uc7_cross_segment.do` gives this as commented, non-executed
-code. A native cross-corpus comparison command — taking two saved
-construct/relation sets and reporting their overlap and divergence — is a
-natural candidate for a future release of the package; at present the
-comparison is assembled by the analyst from the per-corpus outputs.
-
 ---
 
 ## Closing note
@@ -376,4 +305,4 @@ unstructured body of text to a curated, structured hypothesis register and
 a set of figures suitable for the descriptive section of a systematic
 review or a methods paper. Executed on the bundled synthetic corpus, as
 here, they reproduce the entire workflow end-to-end and document precisely
-what each command contributes — which is the purpose of this document.
+what each command contributes, which is the purpose of this document.
