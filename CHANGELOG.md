@@ -6,7 +6,9 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [1.0.0] - 2026-06-17
 
-First public release.
+### Added
+
+- First public release.
 
 `littext` extracts candidate construct relationships from a corpus of
 academic text and returns them as Stata frames, with figures and a
@@ -17,11 +19,11 @@ curatable hypothesis-register export.
 - `littext analyze` — the pipeline: noun-chunk construct extraction
   (spaCy), sentence-transformer embeddings, HDBSCAN synonym clustering,
   lexical construct-hierarchy detection, and candidate-relationship
-  scoring via dependency patterns and normalised pointwise mutual
+  scoring via dependency patterns and normalized pointwise mutual
   information. Results are returned in three frames: `lt_constructs`,
   `lt_relations`, `lt_diag`.
 - `littext graph` — ten figure types (five Stata-native, five
-  matplotlib). The matplotlib types support construct-hierarchy roll-up
+  matplotlib). The matplotlib types support the construct-hierarchy roll-up
   via `level()` and interactive Plotly HTML via `format(html|both)`.
 - `littext export` — writes the candidate relationships as a hypothesis
   register (CSV and/or XLSX), sorted by confidence, with `minconf()`,
@@ -39,6 +41,12 @@ curatable hypothesis-register export.
 - Relationship valence (`relation_type`) and affective sentiment
   (`text_polarity`, optional via `addsentiment`) are distinct; the second
   is not a measure of the first.
+
+## [0.1.0] - 2026-04-01
+
+### Added
+
+- Initial release.
 
 ---
 
