@@ -11,7 +11,7 @@ import pandas as pd
 # Conservative stop-list of generic academic noun phrases that should not be
 # treated as constructs. Lowercase comparison. 
 _STOP_PHRASES = {
-    # Self-references (original v0.1)
+    # Self-references
     "this paper", "this study", "this article", "the present study",
     "the present paper", "the results", "the findings", "our results",
     "our findings", "the data", "the literature", "the analysis",
@@ -34,11 +34,11 @@ _STOP_PHRASES = {
     "addition", "case", "purpose", "aim", "aims", "goal", "objective",
     "conclusion", "conclusions", "discussion", "introduction",
     "background", "context", "approach", "methodology", "method", "methods",
-    # v0.1.1: Emerald-style structured-abstract section header residues
+    #Emerald-style structured-abstract section header residues
     "originality", "originality/value", "design/methodology/approach",
     "design/methodology", "research limitations", "practical implications",
     "social implications", "managerial implications",
-    # v0.1.1: methodological vocabulary (these are methods, not constructs)
+    #methodological vocabulary (these are methods, not constructs)
     "structural equation modeling", "structural equation modelling",
     "online survey", "online surveys", "experiment", "experiments",
     "three experimental studies", "two experimental studies",
@@ -62,10 +62,7 @@ _STOP_PHRASES = {
     # so a downstream MWE gazetteer can re-introduce the full phrase)
     "mouth", "turn", "use",
     # methodological-discourse phrases that are NOT constructs but
-    # are descriptions of methodological roles. These phrases continue to
-    # function as triggers in the dependency-pattern matcher
-    # (littext_relate._find_dep_pattern) - they are excluded from the
-    # constructs frame, not from relation detection.
+    # are descriptions of methodological roles. 
     "mediating role", "moderating effect", "mediating effect",
     "moderating role", "antecedents", "consequences", "antecedent",
     "consequence", "present study",
@@ -75,16 +72,9 @@ _STOP_PHRASES = {
     # "proof of concept" (methodological); "terms" because it appears
     # overwhelmingly in "in terms of" (discourse-marker hedging).
     "concept", "proof of concept", "terms", "manifold ways",
-    # empirical additions from inspection of v0.2.7 constructs frame
-    # on a 99-document marketing-research corpus. Categories below.
-    #
     # Statistical methods are deliberately RETAINED as constructs (per user
     # preference) because methods-of-research is itself an object of analysis
-    # in the marketing literature. Hence no additions like "PLS-SEM", "ANOVA",
-    # "confirmatory factor analysis", "partial least squares", "structural
-    # equation", "extended technology acceptance model" - these stay as
-    # legitimate constructs.
-    #
+    # in the marketing literature. 
     # (a) Writing boilerplate / paper-structure vocabulary that appears in
     #     abstracts as discourse markers rather than theoretical content:
     "main purpose", "recent years", "previous studies", "existing literature",
@@ -97,24 +87,18 @@ _STOP_PHRASES = {
     "practice", "support", "understanding", "hypotheses", "addition",
     # (b) Geographies. Country and region names are excluded because they
     #     typically appear as study-context indicators rather than as objects
-    #     of theoretical claims. If a user wants country-level analysis they
-    #     should pass an explicit gazetteer; the default stop-list excludes
-    #     them to keep the constructs frame focused on theoretical vocabulary.
+    #     of theoretical claims. 
     "china", "chinese consumers", "kuwait", "united arab emirates",
     "united states",
-    # (c) Methodology role markers beyond the v0.1.2 set. "Frequency analysis"
+    # (c) Methodology role markers. "Frequency analysis"
     #     and "thematic analysis" and "data analysis" describe analytic
     #     procedures used in the paper (and therefore overlap with statistical-
     #     methods vocabulary), but in real abstracts they appear almost
     #     exclusively as descriptions of what the paper DID rather than as
-    #     objects of comparison. They are excluded for that reason; if the
-    #     user wants methods-comparison analysis they can re-include them via
-    #     an extension hook in v0.3.
+    #     objects of comparison. 
     "frequency analysis", "thematic analysis", "data analysis",
     "non-participatory netnography", "online experiment",
-    # (d) Punctuation/tokenisation artefacts that survived v0.2.7. Fix 3
-    #     (bracket-stripping in _clean_chunk) handles the cause; these are
-    #     belt-and-braces entries in case any slip through.
+    # (d) Punctuation/tokenisation artefacts. 
     "(cbbe", "cbbe", "(sem", "sem",
 }
 

@@ -1,9 +1,7 @@
 """littext_cluster: cluster construct embeddings into synonym groups.
 
 The output is a canonical_form per construct: within each cluster, the most
-frequent surface form is chosen as the canonical label. Singletons (HDBSCAN
-noise points, labelled -1) are kept as their own one-member clusters because
-they may still be valid constructs.
+frequent surface form is chosen as the canonical label.
 """
 
 from __future__ import annotations
@@ -17,10 +15,6 @@ SIMILARITY_FLOOR = 0.65
 
 def _split_loose_clusters(labels: np.ndarray, emb: np.ndarray, floor: float) -> np.ndarray:
     """Split any cluster whose min within-cluster cosine similarity < floor.
-
-    Embeddings are assumed L2-normalised, so cosine similarity is the dot
-    product. Splits are greedy: the cluster is rebuilt by single-linkage
-    chaining where edges below the floor are cut.
     """
     out = labels.copy()
     next_label = int(out.max()) + 1 if len(out) and out.max() >= 0 else 0

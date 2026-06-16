@@ -1,18 +1,9 @@
 """littext_hierarchy: detect IS-A subsumption among canonical constructs.
 
 Synonym clustering (in littext_cluster) operates over symmetric similarity
-and folds near-synonyms into a single canonical_form. IS-A subsumption is
-anti-symmetric and tree-like and is therefore not recovered by clustering.
+and folds near-synonyms into a single canonical_form. 
 This module assigns hierarchy information to each canonical form as a
 second pass over the clustering output.
-
-Note on language: this module is English-specific. English noun
-compounds place the syntactic and semantic head at the right edge with
-modifiers stacking leftward, so the right-substring rule reflects a
-structural regularity of the language. Languages with leftward
-headedness (e.g. some Semitic languages) would require the mirror-image
-rule. Users analysing non-English corpora should pass
-disable_hierarchy=True (handled by the caller).
 """
 
 from __future__ import annotations
@@ -55,7 +46,7 @@ def _token_aligned_right_substring(parent: str, child: str) -> bool:
     # boundary: 'equity' is NOT a token-aligned right substring of
     # 'employee-equity' because there is no whitespace immediately
     # before 'equity'. This is intentional: hyphenated compounds are
-    # single lexical units in marketing prose.
+    # single lexical units in marketing/management prose.
     boundary_char = child[len(child) - len(parent) - 1]
     return boundary_char == " "
 

@@ -41,14 +41,7 @@ def _load_corpus(corpus_path: str,
     """Load the temp .dta written by _littext_analyze.ado and apply
     pre-extraction text cleanup (publisher boilerplate, copyright tails,
     and any further patterns appropriate to the declared texttype).
-
-    The principal row-drop pass is performed Stata-side in _littext_analyze
-    before the .dta is written. This function additionally performs a
-    defensive post-cleanup drop to catch the corner case where text strings
-    pass Stata-side validation but the cleaning step strips them down to
-    whitespace (this can happen, for example, when a row contains only an
-    Emerald section header with no actual abstract body).
-
+    
     Parameters
     ----------
     corpus_path : str
