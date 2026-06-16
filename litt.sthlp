@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0  15june2026}{...}
+{* *! version 1.0  17june2026}{...}
 {title:Title}
 
 {phang}
@@ -36,7 +36,7 @@ are functionally identical.
 {pstd}
 {bf:littext} extracts candidate construct relationships from an unstructured
 corpus of academic text (titles, abstracts, full texts) or other research
-text such as interview transcripts, consumer reviews, and social-media
+text such as interview transcripts, consumer reviews, and social media
 comments. It is intended for the exploratory researcher who has assembled a
 large corpus and wants to generate candidate relationships of the form
 "X is associated with Y", "X moderates the effect of Z on Y", etc., that
@@ -129,8 +129,8 @@ abstract/other, 500 for fulltext, 30 for transcript, 20 for review,
 
 {phang}
 {opt keepe:mpty} - retain all rows including empty, whitespace-only, and
-below-threshold ones. Default behaviour is to drop these with a logged
-count. Use this when the corpus is being analysed for a purpose that
+below-threshold ones. The default behavior is to drop these with a logged
+count. Use this when the corpus is being analyzed for a purpose that
 requires preserving the input row count.
 
 {phang}

@@ -6,7 +6,7 @@ title: "LITTEXT: Stata module for automated construct and relationship discovery
 message: "If you use this software, please cite it as below."
 type: software
 version: "1.0"
-date-released: "2026-06-15"
+date-released: "2026-06-17"
 license: GPL-3.0-or-later
 repository-code: "https://github.com/Davcik/littext"
 url: "https://github.com/Davcik/littext"
