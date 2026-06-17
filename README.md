@@ -222,7 +222,7 @@ release is **v1.0.0**.
 
 When citing `littext` in academic work, please use:
 
-> Davcik, N. S. 2026. *LITTEXT: Stata module for automated construct and relationship discovery from research text.*
+> Davcik, N. S. 2026. *LITTEXT: Stata module for automated construct discovery and relationship inference from academic text.*
 > Available at:
 > [https://github.com/Davcik/littext](https://github.com/Davcik/littext)
 

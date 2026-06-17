@@ -461,7 +461,7 @@ Email: {browse "mailto:davcik@live.com":davcik@live.com}
 When citing {cmd:littext} in academic work, please use:
 
 {phang2}
-Davcik, N. S. 2026. {it:LITTEXT: Stata module for automated construct and relationship discovery from research text.}
+Davcik, N. S. 2026. {it:LITTEXT: Stata module for automated construct discovery and relationship inference from academic text.}
 Available at: {browse "https://github.com/Davcik/littext":https://github.com/Davcik/littext}
 
 

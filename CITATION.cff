@@ -2,7 +2,7 @@
 # Citation File Format v1.2.0
 # https://citation-file-format.github.io/
 cff-version: 1.2.0
-title: "LITTEXT: Stata module for automated construct and relationship discovery from research text"
+title: "LITTEXT: Stata module for automated construct discovery and relationship inference from academic text"
 message: "If you use this software, please cite it as below."
 type: software
 version: "1.0"
