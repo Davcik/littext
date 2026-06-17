@@ -430,7 +430,7 @@ conceptual subsumption that lacks a lexical signal.
 
 {pstd}
 Bouma, G. (2009). Normalized (pointwise) mutual information in collocation
-extraction. {it:Proceedings of GSCL, 30}, 31-40.
+extraction. In {it:Proceedings of GSCL, 30}, 31-40.
 
 {pstd}
 Hearst, M. A. (1992). Automatic acquisition of hyponyms from large text
@@ -438,12 +438,11 @@ corpora. In {it:Proceedings of COLING-92}, 539-545.
 
 {pstd}
 Hutto, C. J., & Gilbert, E. (2014). VADER: A parsimonious rule-based model
-for sentiment analysis of social media text. {it:Proceedings of ICWSM}, 8(1), 216-225.
+for sentiment analysis of social media text. In {it:Proceedings of ICWSM}, 8(1), 216-225.
 
 {pstd}
 Li, J., Larsen, K. R., & Abbasi, A. (2020). TheoryOn: A design framework and
-system for unlocking behavioral knowledge through ontology learning. {it:MIS
-Quarterly}, 44(4), 1733-1772.
+system for unlocking behavioral knowledge through ontology learning. {it:MIS Quarterly}, 44(4), 1733-1772.
 
 
 {title:Aliases}
