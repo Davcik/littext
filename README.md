@@ -1,3 +1,10 @@
+
+<img width="2723" height="2100" alt="littext_map" src="https://github.com/user-attachments/assets/d6294290-fb77-46c1-8c08-e39ddbb9dbc4" />
+
+<img width="2617" height="2202" alt="uc3_network_root" src="https://github.com/user-attachments/assets/ccb113cf-0ecb-47a4-8335-8674fca23bf1" />
+
+<img width="2879" height="3488" alt="littext_roles" src="https://github.com/user-attachments/assets/8d0b9025-df45-4293-a83d-e13fd1334712" />
+
 # littext
 
 **Automated construct discovery and relationship inference from academic text, for Stata**
